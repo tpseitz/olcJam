@@ -4,6 +4,20 @@ Destructed earth
 A game created for [OLC codejam 2019](https://itch.io/jam/olc-codejam-2019)
 with theme destruction.
 
+This game aims to be a remake of old game called Scorched Earth.
+
+Road map
+========
+
+Here is some features that I plan to implement before the game is considered
+complete. Of course most of these properties won't be implemented in the Jam
+time.
+
+* Basic UI: start menu, player menu, shop and end screen
+* Network play
+* Moving weapon implementation from hard coded to Lua
+* Sound
+
 BSD 3-Clause License
 ====================
 
