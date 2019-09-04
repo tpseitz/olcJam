@@ -1,7 +1,8 @@
 Destructed earth
 ================
 
-A game created for OLC Codejam 2019: Destruction
+A game created for [OLC codejam 2019](https://itch.io/jam/olc-codejam-2019)
+with theme destruction.
 
 BSD 3-Clause License
 ====================
