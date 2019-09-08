@@ -12,6 +12,7 @@ Object::Object(Tank* parent, Vector2D location) {
 
   owner = parent;
   loc = location;
+  if (owner == NULL) std::cout << "No owner!" << std::endl; //XXX
 }
 
 Area Object::GetArea() {
@@ -74,9 +75,26 @@ bool Explosion::Update(GameRound* game) {
         game->ground->SetPixel(pl.x - x, pl.y - y, px);
       }
     }
-    for (Tank* tnk=&game->tanks[0];tnk < &game->tanks[game->tank_count];tnk++){
+    for (Tank* tnk: game->tanks){
+      if (!tnk->alive) continue;
       int dist = (int)(Vector2D(tnk->loc) - loc).length();
-      if (dist < size) tnk->health -= (size - dist) * 3;
+      if (dist < size) {
+        int dmg = (size - dist) * power;
+        tnk->health -= dmg;
+        if (tnk == owner) {
+          owner->player->score -= dmg / 2;
+          if (tnk->health < 0) {
+            owner->player->score += POINTS_SUICIDE;
+            tnk->alive = false;
+          }
+        } else {
+          owner->player->score += dmg;
+          if (tnk->health < 0) {
+            owner->player->score += POINTS_KILL;
+            tnk->alive = false;
+          }
+        }
+      }
     }
     alive = false;
   }

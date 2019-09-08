@@ -2,21 +2,35 @@ Destructed earth
 ================
 
 A game created for [OLC codejam 2019](https://itch.io/jam/olc-codejam-2019)
-with theme destruction.
+with theme destruction. Source code can be found on
+[Github](https://github.com/tpseitz/olcJam).
 
-This game aims to be a remake of old game called Scorched Earth.
+This game aims to be a remake of old game called Scorched Earth. It uses
+[OLC Pixel Game Engine](https://github.com/OneLoneCoder/olcPixelGameEngine)
+from javidx9 aka One Lone Coder, the creator of the jam.
 
-Road map
-========
+Roadmap
+=======
 
 Here is some features that I plan to implement before the game is considered
 complete. Of course most of these properties won't be implemented in the Jam
 time.
 
-* Basic UI: start menu, player menu, shop and end screen
+* Basic UI
+** shop and end screen
+** player properties and menu
+* Falling ground
+* An actual AI
 * Network play
+* Particles
+* Different settings for ground
 * Moving weapon implementation from hard coded to Lua
+* Name and quote databases
+* Wind
+* Natural phenomenons: thunder, meteors
+* Graphics
 * Sound
+* Server / client possibility
 
 BSD 3-Clause License
 ====================

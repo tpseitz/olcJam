@@ -32,7 +32,7 @@ struct Projectile : Object {
 };
 
 struct Explosion : Object {
-  int size = 100, time = 3;
+  int size = 100, power = 5, time = 3;
   olc::Pixel color = { 255, 64, 0 };
 
   Explosion(Tank*, Vector2D, int, int);

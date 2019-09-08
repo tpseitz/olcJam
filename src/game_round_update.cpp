@@ -2,30 +2,36 @@
 
 int PHYSICS_ROUNDS = 3;
 
-bool GameRound::Update(olc::PixelGameEngine* pge) {
+bool GameRound::Update(const Interface inter) {
+  if (state != prev_state) tic = 0;
+  prev_state = state;
+
   switch (state) {
-    case PREPARATION: return UpdatePreparation(pge);
+    case PREPARATION: return UpdatePreparation(inter);
     case SHOOT: return UpdateShoot();
     case SHOOTING: return UpdateShooting();
     case ENDING: return UpdateEnding();
+    case SCORES: return UpdateScores(inter);
     case END: return true;
     default: return false;
   }
 }
 
-bool GameRound::UpdatePreparation(olc::PixelGameEngine* pge) {
+bool GameRound::UpdatePreparation(const Interface inter) {
   // Loop thru all tanks and call prepare for first alive tank that is not
   // ready
   Tank* tank;
-  for (int i = 0; i < tank_count; i++) {
-    tank = &tanks[i];
-    if (tank->alive && !tank->ready) {
-      tank->Prepare(pge);
+  for (Tank* tnk: tanks) {
+    if (tnk->alive && !tnk->ready) {
+      if (selected_tank != tnk) refresh = true;
+      selected_tank = tnk;
+      tnk->Prepare(inter);
       return true;
     }
   }
 
   // If all tanks are ready. Switch to shoot state
+  selected_tank = NULL;
   state = SHOOT;
   return true;
 }
@@ -35,13 +41,11 @@ bool GameRound::UpdateShoot() {
   objects.clear();
   tic = 0;
 
-  Tank* tank;
-  for (int i = 0; i < tank_count; i++) {
-    tank = &tanks[i];
-    if (tank->alive) {
-      Vector2D shot = VectorFromAngle(tank->angle, (float)tank->power / 100.0);
-      Vector2D loc = Vector2D(tank->loc) + shot;
-      new Projectile(tank, loc, shot);
+  for (Tank* tnk: tanks) {
+    if (tnk->alive) {
+      Vector2D shot = VectorFromAngle(tnk->angle, (float)tnk->power / 100.0);
+      Vector2D loc = Vector2D(tnk->loc) + shot;
+      new Projectile(tnk, loc, shot);
     }
   }
 
@@ -59,7 +63,7 @@ bool GameRound::UpdateShooting() {
       obj->Update(this);
     }
 
-    for (Tank* tnk = &tanks[0]; tnk < &tanks[tank_count]; tnk++) {
+    for (Tank* tnk: tanks) {
       if (!tnk->alive) continue;
       if (ground->GetPixel(tnk->loc.x, tnk->loc.y).a == 0
           and tnk->loc.y < height) {
@@ -85,16 +89,33 @@ bool GameRound::UpdateShooting() {
 }
 
 bool GameRound::UpdateEnding() {
+  for (auto obj: objects) delete obj;
+  objects.clear();
+
   int alive = 0;
-  for (int i = 0; i < tank_count; i++) {
-    tanks[i].ready = false;
-    if (tanks[i].alive) alive++;
+  for (Tank* tnk: tanks) {
+    tnk->ready = false;
+    if (tnk->alive) alive++;
   }
 
-  if (alive <= 1) state = END;
-  else state = PREPARATION;
+  if (alive <= 1) {
+    for (Tank* tnk: tanks) if (tnk->alive) tnk->player->score += POINTS_WINNER;
+    state = SCORES;
+  } else state = PREPARATION;
 
   refresh = true;
+  return true;
+}
+
+bool GameRound::UpdateScores(const Interface inter) {
+  int humans = 0;
+  for (Tank* tnk: tanks)
+    if (tnk->player->type == HUMAN) humans++;
+
+  if (tic > 5 and inter.ready) state = END;
+  else if (tic > 300 and humans == 0) state = END;
+
+  tic++;
   return true;
 }
 
