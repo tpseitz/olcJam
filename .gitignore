@@ -4,6 +4,8 @@
 *.a
 *.dll
 # Binary and object directories
+destruct-*.zip
+destruct/
 bin/
 obj/
 # Editor swap files
