@@ -40,7 +40,7 @@ bool MainMenu::Update(olc::PixelGameEngine* pge) {
       else if (mx >= 506 and mx <= 528 and players.size() < MAX_PLAYERS)
         players.push_back(
           new Player("Player " + std::to_string(players.size()),
-            COLOR_LIST[players.size() % COLOR_COUNT], HUMAN));
+            COLOR_LIST[players.size() % COLOR_COUNT], DEFAULT_PLAYER_TYPE));
     } else if (my >= 48 and my <= 72) {
       for (int i = 0; i < players.size(); i++) {
         int x = 16 + 32 * i;
@@ -51,7 +51,7 @@ bool MainMenu::Update(olc::PixelGameEngine* pge) {
       }
     } else if (my >= 88 and my <= 112) {
       if      (mx >= 16 and mx <= 80) {
-        for (Player* plr: players) plr->score = 0;
+        PrepareGame();
         ready = true;
       } else if (mx >= 96 and mx <= 192) {
         quit = true; ready = true;

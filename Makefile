@@ -1,17 +1,19 @@
 NAME = destruct
-VERSION = 0.1
-FILES = LICENSE FILE_ID.DIZ README.md
-OBJ_CLIENT = olcPixelGameEngine.o client.o vector.o physics.o tank.o \
-  game_round.o game_round_update.o game_round_draw.o menu.o
+VERSION = 0.2
+DOCS = LICENSE FILE_ID.DIZ README.md
+OBJ_CLIENT = olcPixelGameEngine.o client.o vector.o physics.o tank.o util.o \
+  game_round.o game_round_update.o particles.o game_round_draw.o menu.o
 WIN_LIB = libopengl32.a libgdi32.a libgdiplus.a
 WIN_DLL = libwinpthread-1.dll
+TESTS = strip read
 
 SOURCE = src
 OBJ_DIR = obj
-TARGET = $(NAME)
+BIN_DIR = bin
+DATA_DIR = data
 LIN_BIN = $(NAME)
 WIN_BIN = $(NAME).exe
-PACKAGE = $(NAME)-$(VERSION).zip
+PACKAGE = $(NAME)-$(VERSION)
 
 CXX = g++
 WIN_CXX = i686-w64-mingw32-g++
@@ -25,39 +27,38 @@ WIN_LDFLAGS = -g -static-libgcc -static-libstdc++
 DCFLAGS = -g -std=c++14 -pthread -lGL -lX11 -lpng
 PACK = zip -r
 
-LIN_TARGET = $(TARGET)
-WIN_TARGET = $(TARGET)
-DIRECTORIES = $(OBJ_DIR) $(TARGET)
+DIRECTORIES = $(OBJ_DIR) $(BIN_DIR)
+TEST_DIR = tests
 
 WIN_MINGW_DIR = /usr/i686-w64-mingw32/sys-root/mingw
 WIN_LIBDIR = $(WIN_MINGW_DIR)/lib
 
-_FILES = $(foreach fn,$(FILES),$(TARGET)/$(fn))
 _OBJ_CLIENT = $(foreach obj,$(OBJ_CLIENT),$(OBJ_DIR)/$(obj))
-_LIN_BIN = $(foreach bin,$(LIN_BIN),$(LIN_TARGET)/$(bin))
-_WIN_BIN = $(foreach bin,$(WIN_BIN),$(WIN_TARGET)/$(bin))
-WIN_FILES = $(foreach fn,$(WIN_DLL),$(WIN_TARGET)/$(fn))
+_LIN_BIN = $(foreach bin,$(LIN_BIN),$(BIN_DIR)/$(bin))
+_WIN_BIN = $(foreach bin,$(WIN_BIN),$(BIN_DIR)/$(bin))
+_WIN_DLL = $(foreach fn,$(WIN_DLL),$(BIN_DIR)/$(fn))
 WIN_OBJ_CLIENT = $(foreach obj,$(OBJ_CLIENT),$(OBJ_DIR)/$(obj)w)
 _WIN_LIB = $(foreach lib,$(WIN_LIB),$(WIN_LIBDIR)/$(lib))
+_TESTS = $(foreach test,$(TESTS),$(TEST_DIR)/test_$(test))
+
+TESTFLAGS = -g -std=c++14
 
 all: linux win32 release
 
-linux: $(DIRECTORIES) $(LIN_TARGET) $(_LIN_BIN) $(_FILES)
+linux: $(DIRECTORIES) $(_LIN_BIN)
 
-win32: $(DIRECTORIES) $(WIN_TARGET) $(_WIN_BIN) $(WIN_FILES) $(_FILES)
+win32: $(DIRECTORIES) $(_WIN_BIN) $(_WIN_DLL)
 
-release: $(PACKAGE)
-
-$(PACKAGE): $(TARGET)
-	$(PACK) $(PACKAGE) $(TARGET)
+release:
+	$(PACK) $(PACKAGE).zip $(BIN_DIR) $(DATA_DIR) $(DATA_DIR) $(DOCS)
 
 $(DIRECTORIES):
-	$(MKDIR) $(DIRECTORIES)
+	$(MKDIR) $@
 
-$(LIN_TARGET)/destruct: $(_OBJ_CLIENT)
+$(BIN_DIR)/destruct: $(_OBJ_CLIENT)
 	$(CXX) $(_OBJ_CLIENT) -o $@ $(LDFLAGS)
 
-$(TARGET)/destruct.exe: $(WIN_OBJ_CLIENT)
+$(BIN_DIR)/destruct.exe: $(WIN_OBJ_CLIENT)
 	$(WIN_CXX) $(WIN_OBJ_CLIENT) $(_WIN_LIB) -o $@ $(WIN_LDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SOURCE)/%.cpp
@@ -66,18 +67,20 @@ $(OBJ_DIR)/%.o: $(SOURCE)/%.cpp
 $(OBJ_DIR)/%.ow: $(SOURCE)/%.cpp
 	$(WIN_CXX) $(CPPFLAGS) $< -o $@
 
-$(WIN_TARGET)/%.dll: $(WIN_MINGW_DIR)/bin/%.dll
+$(BIN_DIR)/%.dll: $(WIN_MINGW_DIR)/bin/%.dll
 	$(COPY) $< $@
 
-$(TARGET)/%: %
-	$(COPY) $< $@
+tests: $(_TESTS)
+
+$(TEST_DIR)/test_%: $(TEST_DIR)/%.cpp
+	$(CXX) $< -o $@ $(TESTFLAGS)
 
 clean:
 	$(RM) *.o
 	$(RM) *.o32
-	$(RM) $(PACKAGE)
-	$(RM) $(TARGET)/*
+	$(RM) $(PACKAGE).zip
+	$(RM) $(BIN_DIR)/*
 	$(RM) $(OBJ_DIR)/*
+	$(RM) $(_TESTS)
 	$(RMDIR) $(DIRECTORIES)
-#	$(RMDIR) $(LIN_TARGET) $(WIN_TARGET) $(DIRECTORIES)
 

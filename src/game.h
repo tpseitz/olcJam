@@ -1,8 +1,11 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "olcPixelGameEngine.h"
+#include <set>
+#include <map>
+#include "util.h"
 #include "vector.h"
+#include "olcPixelGameEngine.h"
 
 const int MAX_PLAYERS = 16;
 const int MAX_HEALTH = 100;
@@ -16,26 +19,32 @@ const int POINTS_SUICIDE = -750;
 
 enum PlayerType { NONE, HUMAN, RANDOM };
 
-struct Area {
-  int x, y, w, h;
-
-  Area(int, int, int, int);
-};
+extern int INITIAL_PLAYERS;
+extern PlayerType DEFAULT_PLAYER_TYPE;
+extern int PHYSICS_ROUNDS;
 
 struct Interface { int angdir = 0, powdir = 0; bool ready = false; };
 
 struct Player {
   PlayerType type;
   std::string name = "[no name]";
-  olc::Pixel color;
+  uint32_t color;
   int64_t score = 0;
 
-  Player(std::string, olc::Pixel, PlayerType);
+  Player(std::string, uint32_t, PlayerType);
   void SwitchType();
 };
 
 extern std::vector<Player*> players;
 extern int game_rounds;
+
+extern std::vector<std::string> npc_names;
+extern std::vector<std::string> quotes_shoot;
+extern std::vector<std::string> quotes_death;
+
+bool Init();
+
+bool PrepareGame();
 
 struct Tank {
   Player* player = NULL;
@@ -54,20 +63,20 @@ struct Tank {
   Area GetArea();
 };
 
-olc::Sprite* DiamondSquare(int, int);
-
-class GameRound {
-public:
+struct GameRound {
   int width, height;
-  int min = 25, max;
+  int min = 200, max;
   int initial_jump = 512;
-  olc::Sprite* background = NULL;
+  // Ground and background images
   olc::Sprite* ground = NULL;
+  // Variables for dropping ground
+  std::set<int> changed;
+  std::map<int, Range> columns;
   // Tanks for players
   std::vector<Tank*> tanks;
   Tank* selected_tank = NULL;
   // Phycis objects
-  Vector2D gravity = { 0.0, 0.05 };
+  Vector2D gravity = { 0.0, 5.0 }, wind = { 0.0, 0.0 };
   int rounds_left = 0, tic = 0;
   // Switch to refresh screen
   bool refresh = true;
@@ -83,20 +92,12 @@ public:
 
   bool Update(const Interface);
 
-  bool ClearRound(olc::PixelGameEngine*);
-
-  bool DrawRound(olc::PixelGameEngine*);
-
 private:
   bool CreateMap();
 
   bool InsertTanks();
 
-  bool ClearArea(olc::PixelGameEngine*, Area);
-
-  bool DrawInterface(olc::PixelGameEngine*, Tank*);
-
-  bool DrawScores(olc::PixelGameEngine*);
+  bool UpdateParticles();
 
   bool UpdatePreparation(const Interface);
   bool UpdateShoot();
@@ -106,3 +107,4 @@ private:
 };
 
 #endif
+

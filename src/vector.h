@@ -7,8 +7,8 @@ struct Point {
   Point();
   Point(int, int);
 
-  Point operator+(const Point);
-  Point operator-(const Point);
+  Point operator+(const Point) const;
+  Point operator-(const Point) const;
 };
 
 struct Vector2D {
@@ -18,25 +18,25 @@ struct Vector2D {
   Vector2D(Point);
   Vector2D(float, float);
 
-  Vector2D operator*(const float);
+  Vector2D operator*(const float) const;
   Vector2D operator*=(const float);
-  Vector2D operator/(const float);
+  Vector2D operator/(const float) const;
   Vector2D operator/=(const float);
-  Vector2D operator+(const Vector2D&);
+  Vector2D operator+(const Vector2D&) const;
   Vector2D operator+=(const Vector2D&);
-  Vector2D operator-(const Vector2D&);
+  Vector2D operator-(const Vector2D&) const;
   Vector2D operator-=(const Vector2D&);
 
-  float length();
-  Vector2D unit();
-  Vector2D reversed();
-  float dot(const Vector2D&);
+  float length() const;
+  Vector2D unit() const;
+  Vector2D reversed() const;
+  float dot(const Vector2D&) const;
   Vector2D rotate(const Vector2D&);
 
-  Point GetPoint();
+  Point GetPoint() const;
 };
 
-Vector2D VectorFromAngle(float, float);
-Vector2D VectorFromAngle(int, float);
+Vector2D VectorFromAngle(const float, const float);
+Vector2D VectorFromAngle(const int, const float);
 
 #endif

@@ -10,11 +10,11 @@ Point::Point(const int x, const int y) {
   this->x = x; this->y = y;
 }
 
-Point Point::operator+(const Point other) {
+Point Point::operator+(const Point other) const {
   return { x + other.x, y + other.y };
 }
 
-Point Point::operator-(const Point other) {
+Point Point::operator-(const Point other) const {
   return { x - other.x, y - other.y };
 }
 
@@ -29,8 +29,8 @@ Vector2D::Vector2D(const float x, const float y) {
   this->x = x; this->y = y;
 }
 
-Vector2D Vector2D::Vector2D::operator*(const float mult) {
-  return { x * mult, y = mult };
+Vector2D Vector2D::Vector2D::operator*(const float mult) const {
+  return { x * mult, y * mult };
 }
 
 Vector2D Vector2D::Vector2D::operator*=(const float mult) {
@@ -38,7 +38,7 @@ Vector2D Vector2D::Vector2D::operator*=(const float mult) {
   return *this;
 }
 
-Vector2D Vector2D::operator/(const float div) {
+Vector2D Vector2D::operator/(const float div) const {
   return { x / div, y / div };
 }
 
@@ -47,7 +47,7 @@ Vector2D Vector2D::operator/=(const float div) {
   return *this;
 }
 
-Vector2D Vector2D::operator+(const Vector2D& other) {
+Vector2D Vector2D::operator+(const Vector2D& other) const {
   return { x + other.x, y + other.y };
 }
 
@@ -56,7 +56,7 @@ Vector2D Vector2D::operator+=(const Vector2D& other) {
   return *this;
 }
 
-Vector2D Vector2D::operator-(const Vector2D& other) {
+Vector2D Vector2D::operator-(const Vector2D& other) const {
   return { x - other.x, y - other.y };
 }
 
@@ -65,20 +65,20 @@ Vector2D Vector2D::operator-=(const Vector2D& other) {
   return *this;
 }
 
-float Vector2D::length() {
+float Vector2D::length() const {
   return std::sqrt(x * x + y * y);
 }
 
-Vector2D Vector2D::unit() {
+Vector2D Vector2D::unit() const {
   float l = length();
   return { x / l, y / l };
 }
 
-Vector2D Vector2D::reversed() {
+Vector2D Vector2D::reversed() const {
   return { -x, -y };
 }
 
-float Vector2D::dot(const Vector2D& other) {
+float Vector2D::dot(const Vector2D& other) const {
   return x * other.x + y * other.y;
 }
 
@@ -86,7 +86,7 @@ Vector2D Vector2D::rotate(const Vector2D& other) {
   return { x * other.y - y * other.x, x * other.x + y * other.y };
 }
 
-Point Vector2D::GetPoint() {
+Point Vector2D::GetPoint() const {
   return { (int)x, (int)y };
 }
 

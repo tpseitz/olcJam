@@ -1,9 +1,17 @@
 #include "game.h"
+#include "physics.h"
+#include "util_pge.h"
+
+int INITIAL_PLAYERS = 2;
+PlayerType DEFAULT_PLAYER_TYPE = HUMAN;
 
 std::vector<Player*> players;
+std::vector<std::string> npc_names;
+std::vector<std::string> quotes_shoot;
+std::vector<std::string> quotes_death;
 int game_rounds = 5;
 
-Player::Player(std::string name, olc::Pixel col, PlayerType tp) {
+Player::Player(std::string name, uint32_t col, PlayerType tp) {
   score = 0;
   this->name = name;
   color = col;
@@ -17,8 +25,27 @@ void Player::SwitchType() {
   }
 }
 
-Area::Area(int lx, int ly, int width, int height) {
-  x = lx; y = ly; w = width; h = height;
+bool Init() {
+  npc_names    = ReadLines("data/names.txt");
+  quotes_shoot = ReadLines("data/shoot.txt");
+  quotes_death = ReadLines("data/death.txt");
+
+  for (int i = 0; i < INITIAL_PLAYERS; i++)
+    players.push_back(new Player("Player " + std::to_string(i + 1),
+      COLOR_LIST[i % COLOR_COUNT], DEFAULT_PLAYER_TYPE));
+
+  return true;
+}
+
+bool PrepareGame() {
+  std::set<int> names_exclude;
+  for (Player* plr: players) {
+    if (plr->type == RANDOM)
+      plr->name = RandomChoice(npc_names, &names_exclude);
+    plr->score = 0;
+  }
+
+  return true;
 }
 
 GameRound::GameRound(int w, int h, std::vector<Player*> players, int rounds) {
@@ -26,6 +53,8 @@ GameRound::GameRound(int w, int h, std::vector<Player*> players, int rounds) {
   height = h;
   rounds_left = rounds;
   max = height - 20;
+
+  wind = { (float)((double)((rand() % 1000) - 500) / 1000.0), 0.0 };
 
   int ndx = 0;
   while (players.size() > 0) {
@@ -36,9 +65,10 @@ GameRound::GameRound(int w, int h, std::vector<Player*> players, int rounds) {
 }
 
 GameRound::~GameRound() {
-  for (Tank* tnk: tanks) delete tnk;
-  if (background != NULL) delete background;
-  if (ground != NULL) delete ground;
+  for (Tank* tnk: tanks)   delete tnk;
+  if  (ground != NULL)     delete ground;
+  for (auto pr: particles) delete pr;
+  particles.clear();
 }
 
 bool GameRound::CreateRound() {
@@ -93,19 +123,6 @@ olc::Sprite* DiamondSquare(int size, int count) {
 }
 
 bool GameRound::CreateMap() {
-  background = new olc::Sprite(width, height);
-
-  float mlt = (float)height / 255.0;
-  int yy, c;
-  olc::Pixel col;
-  for (float y = 0; y < height; y++) {
-    c = 255 - (int)(y / mlt);
-    if (c < 128) col = olc::Pixel(0, 0, c);
-    else col = olc::Pixel((c - 128) / 2, c - 128, 128);
-    yy = (int)y;
-    for (int x = 0; x < width; x++) background->SetPixel(x, yy, col);
-  }
-
   ground = new olc::Sprite(width, height);
 
   int wdt = width + initial_jump - width % initial_jump;
@@ -118,6 +135,7 @@ bool GameRound::CreateMap() {
     hght[x] = min + rand() % range;
 
   int add = 0;
+  olc::Pixel col;
   while (jump > 1) {
     jump /= 2;
     range /= 2;
@@ -126,6 +144,8 @@ bool GameRound::CreateMap() {
         if (range > 1) add = rand() % range - range / 2;
         else add = 0;
         hght[x] = (hght[x-jump] + hght[x+jump]) / 2 + add;
+        if (hght[x] < min) hght[x] = min;
+        if (hght[x] > max) hght[x] = max;
       }
     }
   }

@@ -1,14 +1,15 @@
 #include "olcPixelGameEngine.h"
 #include "game.h"
+#include "draw_pge.h"
 #include "menu.h"
 
-const int WIDTH = 1200, HEIGHT = 900, PIXEL_SIZE = 1;
 const float KEY_TIME = 0.1;
+int WIDTH = 1200, HEIGHT = 900, PIXEL_SIZE = 1;
 
 class DestructionClient : public olc::PixelGameEngine {
   bool running = false, paused = false;
   GameRound* round = NULL;
-//  Menu* menu = new MainMenu();
+  DrawRound* round_draw = NULL;
   MainMenu* menu = NULL;
   int rounds_left = 0;
   float fTime = 0.0;
@@ -25,13 +26,9 @@ public:
   bool OnUserCreate() override {
     running = true;
 
-    srand (time(NULL));
+    running &= Init();
 
-    for (int i = 0; i < 2; i++)
-      players.push_back(new Player("Player " + std::to_string(i + 1),
-        COLOR_LIST[i % COLOR_COUNT], HUMAN));
-//    players[0]->type = HUMAN; //XXX
-    for (Player* plr: players) std::cout << plr->name << std::endl;
+    srand(time(NULL));
 
     menu = new MainMenu();
 
@@ -103,23 +100,27 @@ void DestructionClient::MainLoop() {
       menu = NULL;
     }
   } else if (round != NULL) {
-    round->ClearRound(this);
+    if (round_draw == NULL) round_draw = new DrawRound(this, round);
+    round_draw->Clear();
+    CleanObjects();
     round->Update(ReadKeys(this));
-    round->DrawRound(this);
+    round_draw->Draw();
     if (round->state == GameRound::END) {
       rounds_left--;
+      delete round_draw;
       delete round;
+      round_draw = NULL;
       round = NULL;
     }
   } else if (rounds_left > 0) {
-    round = new GameRound(WIDTH, HEIGHT, players, rounds_left);
+    round = new GameRound(WIDTH - 4, HEIGHT - 5, players, rounds_left);
     round->CreateRound();
   } else {
     menu = new MainMenu();
   }
 }
 
-int main() {
+int main(int args, char** argv) {
   DestructionClient cli;
   if (cli.Construct(WIDTH, HEIGHT, PIXEL_SIZE, PIXEL_SIZE)) cli.Start();
   return 0;

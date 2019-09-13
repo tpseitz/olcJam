@@ -19,17 +19,14 @@ time.
 * Basic UI
 ** shop and end screen
 ** player properties and menu
-* Falling ground
 * An actual AI
 * Network play
-* Particles
 * Different settings for ground
 * Moving weapon implementation from hard coded to Lua
-* Name and quote databases
-* Wind
 * Natural phenomenons: thunder, meteors
-* Graphics
+* Actual graphics
 * Sound
+* Move drawing and pge separate from physics
 * Server / client possibility
 
 BSD 3-Clause License
