@@ -58,7 +58,7 @@ bool Projectile::Update(GameRound* game) {
   }
 
   // Check ground collision
-  if (game->ground->GetPixel(pl.x, pl.y).a > 0) {
+  if (Map_IsGround(pl.x, pl.y)) {
     new Explosion(owner, loc, 30, 10);
     alive = false;
   }
@@ -86,31 +86,16 @@ bool Explosion::Update(GameRound* game) {
   if (!alive) return false;
 
   Point pl = loc.GetPoint();
-  uint32_t col = game->ground->GetPixel(pl.x, pl.y).n;
-  if (col & 255 == 0) col = 0x808080ff;
+  uint32_t col = Map_GetColor(pl.x, pl.y);
+  if (col & 255 == 0) col = 0xff808080;
   for (int i = 0; i < power; i++) {
     Vector2D spd = VectorFromAngle(
       rand() % 360, (float)(rand() % 100) / 100.0);
     new Particle(loc + spd, spd, 50 + rand() % 100, col);
   }
   if (age >= time) {
-    int rr = size * size, yy;
-    olc::Pixel px = olc::Pixel(0, 0, 0, 0);
-    for (int x = pl.x - size; x < pl.x + size; x++)
-      if (x >= 0 and x < game->width)
-        game->changed.insert(x);
-    for (int x = 0; x < size; x++) {
-      yy = std::sqrt(rr - x * x);
-      for (int y = 0; y < yy; y++) {
-        if (pl.x - x >= 0) {
-          game->ground->SetPixel(pl.x - x, pl.y + y, px);
-          game->ground->SetPixel(pl.x - x, pl.y - y, px);
-        } if (pl.x + x < game->width) {
-          game->ground->SetPixel(pl.x + x, pl.y + y, px);
-          game->ground->SetPixel(pl.x + x, pl.y - y, px);
-        }
-      }
-    }
+    Map_ClearCircle(pl.x, pl.y, size);
+
     for (Tank* tnk: game->tanks){
       if (!tnk->alive) continue;
       int dist = (int)(Vector2D(tnk->loc) - loc).length();

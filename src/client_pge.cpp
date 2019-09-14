@@ -1,5 +1,5 @@
-#include "olcPixelGameEngine.h"
 #include "game.h"
+#include "olcPixelGameEngine.h"
 #include "draw_pge.h"
 #include "menu.h"
 
@@ -107,10 +107,11 @@ void DestructionClient::MainLoop() {
     round_draw->Draw();
     if (round->state == GameRound::END) {
       rounds_left--;
-      delete round_draw;
       delete round;
-      round_draw = NULL;
       round = NULL;
+      if (round_draw != NULL) delete round_draw;
+      round_draw = NULL;
+      Map_DestroyMap();
     }
   } else if (rounds_left > 0) {
     round = new GameRound(WIDTH - 4, HEIGHT - 5, players, rounds_left);

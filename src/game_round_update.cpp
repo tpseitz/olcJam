@@ -5,6 +5,19 @@ const uint32_t FIRE_COLORS[] = { 0xff0000ff, 0xff0080ff, 0xff00ffff };
 bool GameRound::UpdateParticles() {
   for (auto par: particles) par->Update(this);
 
+  for (Tank* tnk: tanks) {
+    if (not tnk->alive) continue;
+    if (tnk->health < 7) {
+      new Particle(tnk->loc, VectorFromAngle(rand() % 360, 0.025),
+        50 + rand() % 100, FIRE_COLORS[rand() % 3], -0.05, 0.01);
+    if (rand() % 3 == 0)
+        new Particle(tnk->loc, VectorFromAngle(rand() % 360, 0.05),
+          10 + rand() % 200, 0xff808080, -0.05, 0.01);
+    } else if (tnk->health < 25 and rand() % (tnk->health/5) == 0)
+      new Particle(tnk->loc, VectorFromAngle(rand() % 360, 0.05),
+        50 + rand() % 100, 0xff808080, -0.05, 0.2);
+  }
+
   for (int i = particles.size() - 1; i >= 0; i--) if (!particles[i]->alive) {
     Particle* par = particles[i];
     particles.erase(particles.begin() + i);
@@ -87,8 +100,8 @@ bool GameRound::UpdateShooting() {
     for (int x: changed) {
       if (columns[x].s < 0) {
         int sy = 0, ey = height - 1;
-        while (ey > 0 and ground->GetPixel(x, ey).a > 0) ey--;
-        while (sy < height and ground->GetPixel(x, sy).a == 0) sy++;
+        while (ey > 0 and Map_IsGround(x, ey)) ey--;
+        while (sy < height and not Map_IsGround(x, sy)) sy++;
         if (sy + 1 >= ey) {
           del.insert(x);
           continue;
@@ -100,12 +113,10 @@ bool GameRound::UpdateShooting() {
       int minY = 0, maxY = 0;
       bool changes = false, drop = false;
       for (int y = columns[x].e; y >= columns[x].s; y--) {
-        olc::Pixel px = ground->GetPixel(x, y);
-        if (px.a > 0) {
+        if (Map_IsGround(x, y)) {
           minY = y;
           if (drop) {
-            ground->SetPixel(x, y + 1, px);
-            ground->SetPixel(x, y, olc::Pixel(0, 0, 0, 0));
+            Map_MovePixel(x, y, x, y + 1);
             changes = true;
           } else {
             drop = false;
@@ -132,8 +143,7 @@ bool GameRound::UpdateShooting() {
 
     for (Tank* tnk: tanks) {
       if (!tnk->alive) continue;
-      if (ground->GetPixel(tnk->loc.x, tnk->loc.y).a == 0
-          and tnk->loc.y < height) {
+      if (tnk->loc.y < height and not Map_IsGround(tnk->loc.x, tnk->loc.y)) {
         alive++;
         tnk->fall++;
         tnk->loc.y++;
@@ -142,16 +152,6 @@ bool GameRound::UpdateShooting() {
         tnk->fall = 0;
       }
       if (tnk->health <= 0) tnk->alive = false;
-
-      if (tnk->health < 7) {
-        new Particle(tnk->loc, VectorFromAngle(rand() % 360, 0.025),
-          50 + rand() % 100, FIRE_COLORS[rand() % 3], -0.05, 0.01);
-      if (rand() % 3 == 0)
-          new Particle(tnk->loc, VectorFromAngle(rand() % 360, 0.05),
-            10 + rand() % 200, 0x808080ff, -0.05, 0.01);
-      } else if (tnk->health < 25 and rand() % (tnk->health/5) == 0)
-        new Particle(tnk->loc, VectorFromAngle(rand() % 360, 0.05),
-          50 + rand() % 100, 0x808080ff, -0.05, 0.2);
     }
 
     tic++;

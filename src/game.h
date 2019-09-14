@@ -5,7 +5,6 @@
 #include <map>
 #include "util.h"
 #include "vector.h"
-#include "olcPixelGameEngine.h"
 
 const int MAX_PLAYERS = 16;
 const int MAX_HEALTH = 100;
@@ -35,9 +34,13 @@ struct Player {
   void SwitchType();
 };
 
+// Player lists and round properties
 extern std::vector<Player*> players;
 extern int game_rounds;
-
+// Variables for dropping ground
+extern std::set<int> changed;
+extern std::map<int, Range> columns;
+// Lists for particles and physical objects
 extern std::vector<std::string> npc_names;
 extern std::vector<std::string> quotes_shoot;
 extern std::vector<std::string> quotes_death;
@@ -67,11 +70,6 @@ struct GameRound {
   int width, height;
   int min = 200, max;
   int initial_jump = 512;
-  // Ground and background images
-  olc::Sprite* ground = NULL;
-  // Variables for dropping ground
-  std::set<int> changed;
-  std::map<int, Range> columns;
   // Tanks for players
   std::vector<Tank*> tanks;
   Tank* selected_tank = NULL;
@@ -93,8 +91,6 @@ struct GameRound {
   bool Update(const Interface);
 
 private:
-  bool CreateMap();
-
   bool InsertTanks();
 
   bool UpdateParticles();
@@ -105,6 +101,14 @@ private:
   bool UpdateEnding();
   bool UpdateScores(const Interface);
 };
+
+uint8_t Map_IsGround(int, int);
+uint32_t Map_GetColor(int, int);
+void Map_ClearPixel(int, int);
+void Map_ClearCircle(int, int, int);
+void Map_MovePixel(int, int, int, int);
+void Map_CreateMap(GameRound*);
+void Map_DestroyMap();
 
 #endif
 

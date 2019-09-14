@@ -1,19 +1,52 @@
 #include "game.h"
 #include "physics.h"
+#include "olcPixelGameEngine.h"
+#include "util_pge.h"
 #include "draw_pge.h"
 
 std::vector<Area> clean;
+olc::Sprite* background = NULL;
+olc::Sprite* ground = NULL;
 
-DrawRound::DrawRound(olc::PixelGameEngine* eng, GameRound* rnd) {
-  pge = eng; round = rnd;
-  CreateBackground();
+uint8_t Map_IsGround(int x, int y) {
+  return ground->GetPixel(x, y).a;
 }
 
-DrawRound::~DrawRound() {
+uint32_t Map_GetColor(int x, int y) {
+  return ground->GetPixel(x, y).n;
+}
+
+void Map_ClearPixel(int x, int y) {
+  ground->SetPixel(x, y, { 0x00000000 });
+}
+
+void Map_ClearCircle(int cx, int cy, int size) {
+  int rr = size * size, yy;
+  for (int x = cx - size; x < cx + size; x++)
+    if (x >= 0 and x < ground->width)
+      changed.insert(x);
+  for (int x = 0; x < size; x++) {
+    yy = std::sqrt(rr - x * x);
+    for (int y = 0; y < yy; y++) {
+      if (cx - x >= 0) {
+        Map_ClearPixel(cx - x, cy + y);
+        Map_ClearPixel(cx - x, cy - y);
+      } if (cx + x < ground->width) {
+        Map_ClearPixel(cx + x, cy + y);
+        Map_ClearPixel(cx + x, cy - y);
+      }
+    }
+  }
+}
+
+void Map_MovePixel(int x1, int y1, int x2, int y2) {
+  ground->SetPixel(x2, y2, ground->GetPixel(x1, y1));
+  ground->SetPixel(x1, y1, { 0x00000000 });
+}
+
+void Map_CreateMap(GameRound* round) {
+  // Draw background
   if  (background != NULL) delete background;
-}
-
-bool DrawRound::CreateBackground() {
   background = new olc::Sprite(round->width, round->height);
 
   float mlt = (float)round->height / 255.0;
@@ -27,8 +60,110 @@ bool DrawRound::CreateBackground() {
     for (int x = 0; x < round->width; x++) background->SetPixel(x, yy, col);
   }
 
-  return true;
+  // Create profile for ground
+  int wdt =
+    round->width + round->initial_jump - round->width % round->initial_jump;
+  int hght[wdt];
+  for (int x = 0; x < wdt; x++) hght[x] = -1;
+
+  int jump = round->initial_jump;
+  int range = round->max - round->min;
+  for (int x = 0; x < wdt; x += jump) hght[x] = round->min + rand() % range;
+
+  int add = 0;
+  while (jump > 1) {
+    jump /= 2;
+    range /= 2;
+    for (int x = jump; x < wdt - jump; x += jump) {
+      if (hght[x] < 0) {
+        if (range > 1) add = rand() % range - range / 2;
+        else add = 0;
+        hght[x] = (hght[x-jump] + hght[x+jump]) / 2 + add;
+        if (hght[x] < round->min) hght[x] = round->min;
+        if (hght[x] > round->max) hght[x] = round->max;
+      }
+    }
+  }
+
+  // Pattern texture for ground
+  olc::Sprite* plasma = DiamondSquare(128, 4);
+  // Draw the map
+  if  (ground != NULL) delete ground;
+  ground = new olc::Sprite(round->width, round->height);
+
+  int h = round->height / 2;
+  col = olc::Pixel(192, 0, 0);
+  for (int x = 0; x < round->width; x++) {
+    h = round->height - hght[x];
+    if (h < 0) h = 0;
+    for (int y = 0; y < h; y++)
+      ground->SetPixel(x, y, { 0x00000000 });
+    for (int y = h; y < round->height; y++) {
+      col = plasma->GetPixel(x % plasma->width, y % plasma->height);
+      col.r = (col.r + 255 - y * 255 / round->height) / 2;
+//      col.b = 255 - y * 256 / height;
+      ground->SetPixel(x, y, col);
+    }
+  }
+
+  delete plasma;
 }
+
+void Map_DestroyMap() {
+/* TODO Find out why this creates segfault!
+  if (background != NULL) delete background;
+  if (ground != NULL) delete ground;
+*/
+}
+
+//TODO Move this to utils and make it universal
+olc::Sprite* DiamondSquare(int size, int count) {
+  int jump = 16;
+  while (jump < size) jump *= 2;
+  size = jump * count;
+
+  olc::Sprite* img = new olc::Sprite(size, size);
+  for (int x = 0; x < size; x += jump)
+    for (int y = 0; y < size; y += jump)
+      img->SetPixel(x, y, olc::Pixel(64 + rand() % 128, 0, 0, 255));
+
+  while (jump > 1) {
+    jump /= 2;
+
+    for (int x = jump; x < size; x += jump * 2)
+      for (int y = jump; y < size; y += jump * 2)
+        if (img->GetPixel(x, y).r == 0)
+          img->SetPixel(x, y, olc::Pixel((
+              img->GetPixel(x - jump, y - jump).r
+            + img->GetPixel(x - jump, (y + jump) % size).r
+            + img->GetPixel((x + jump) % size, y - jump).r
+            + img->GetPixel((x + jump) % size, (y + jump) % size).r
+          ) / 4 + rand() % jump - jump / 2, 0, 0, 255));
+
+    for (int x = 0; x < size; x += jump) {
+      for (int y = 0; y < size; y += jump) {
+        if (img->GetPixel(x, y).r > 0) continue;
+        int x1 = x - jump, y1 = y - jump, x2 = x + jump, y2 = y + jump;
+        if (x1 < 0) x1 += size;
+        if (y1 < 0) y1 += size;
+        x2 %= size;
+        y2 %= size;
+        img->SetPixel(x, y, olc::Pixel((
+            img->GetPixel(x1, y).r + img->GetPixel(x2, y).r
+          + img->GetPixel(x, y1).r + img->GetPixel(x, y2).r
+        ) / 4 + rand() % jump - jump / 2, 0, 0, 255));
+      }
+    }
+  }
+
+  return img;
+}
+
+DrawRound::DrawRound(olc::PixelGameEngine* eng, GameRound* rnd) {
+  pge = eng; round = rnd;
+}
+
+DrawRound::~DrawRound() {}
 
 bool DrawRound::ClearArea(Area area) {
   if (background == NULL) pge->FillRect(
@@ -37,21 +172,21 @@ bool DrawRound::ClearArea(Area area) {
     background, area.x - 1, area.y - 1, area.w + 2, area.h + 2);
 
   pge->DrawPartialSprite(offset.x + area.x - 1, offset.y + area.y - 1,
-    round->ground, area.x - 1, area.y - 1, area.w + 2, area.h + 2);
+    ground, area.x - 1, area.y - 1, area.w + 2, area.h + 2);
 
   return true;
 }
 
 bool DrawRound::ClearColumn(int x) {
-  if (round->columns[x].s < 0) return true;
+  if (columns[x].s < 0) return true;
 
-  for (int y = round->columns[x].s; y <= round->columns[x].e; y++) {
-    olc::Pixel px = round->ground->GetPixel(x, y);
+  for (int y = columns[x].s; y <= columns[x].e; y++) {
+    olc::Pixel px = ground->GetPixel(x, y);
     if (px.a == 0) px = background->GetPixel(x, y);
     pge->Draw(offset.x + x, offset.y + y, px);
   }
 
-  round->columns[x] = Range();
+  columns[x] = Range();
 
   return true;
 }
@@ -66,7 +201,7 @@ bool DrawRound::Clear() {
   for (int x = 0; x < round->width; x++) ClearColumn(x);
   for (auto par: particles) {
     Point pt = par->loc.GetPoint();
-    olc::Pixel px = round->ground->GetPixel(pt.x, pt.y);
+    olc::Pixel px = ground->GetPixel(pt.x, pt.y);
     if (px.a == 0) px = background->GetPixel(pt.x, pt.y);
     pge->Draw(offset.x + pt.x, offset.y + pt.y, px);
   }
@@ -85,7 +220,7 @@ bool DrawRound::Draw() {
 
     if (background != NULL) pge->DrawSprite(offset.x, offset.y, background);
 
-    pge->DrawSprite(offset.x, offset.y, round->ground);
+    pge->DrawSprite(offset.x, offset.y, ground);
 
     round->refresh = false;
   }

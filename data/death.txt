@@ -55,6 +55,7 @@ I bite your legs off!
 What? This wasn't a practice round?
 Help me Ben, you're my only hope
 Never mind
+Is this the end?
 Let's go!
 Didn't like you anyway
 I've found it!
@@ -71,6 +72,9 @@ I don't hate you
 Don't make lemonade
 Freedom!
 Son, I'm disappointed
+Does not compute
+EOF
+NULL
 Yes. But why?
 Downstairs, please
 Goodbye cruel world

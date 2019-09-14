@@ -1,8 +1,8 @@
 NAME = destruct
 VERSION = 0.2
 DOCS = LICENSE FILE_ID.DIZ README.md
-OBJ_CLIENT = olcPixelGameEngine.o client.o vector.o physics.o tank.o util.o \
-  game_round.o game_round_update.o particles.o game_round_draw.o menu.o
+OBJ_CLIENT = olcPixelGameEngine.o client_pge.o vector.o physics.o tank.o \
+  util.o game_round.o game_round_update.o particles.o game_round_draw.o menu.o
 WIN_LIB = libopengl32.a libgdi32.a libgdiplus.a
 WIN_DLL = libwinpthread-1.dll
 TESTS = strip read

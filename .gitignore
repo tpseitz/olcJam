@@ -13,4 +13,3 @@ obj/
 *~
 # PGE files
 src/olcPixelGameEngine.h
-src/olcPixelGameEngine.cpp

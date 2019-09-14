@@ -1,8 +1,6 @@
 #ifndef MENU_H
 #define MENU_h
 
-#include "olcPixelGameEngine.h"
-
 class MainMenu {
   int frame = 0;
 

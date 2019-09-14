@@ -23,7 +23,7 @@ struct Particle {
   Point size;
 
   Particle(const Vector2D, const Vector2D, const int = 50,
-    const uint32_t = 0x808080ff, const float = 0.1, const float = 0.1);
+    const uint32_t = 0xff808080, const float = 0.1, const float = 0.1);
 
   Particle(const Vector2D, const std::string);
 
@@ -52,7 +52,7 @@ struct Projectile : Object {
 
 struct Explosion : Object {
   int size = 100, power = 5, time = 3;
-  olc::Pixel color = { 255, 64, 0 };
+  uint32_t color = 0xff0040ff; //{ 255, 64, 0 };
 
   Explosion(Tank*, Vector2D, int, int);
   bool Update(GameRound*) override;

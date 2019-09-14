@@ -1,4 +1,5 @@
 #include "game.h"
+#include "olcPixelGameEngine.h"
 #include "menu.h"
 
 const uint32_t DASH_BITS = 0b11001100110011001100110011001100;

@@ -21,8 +21,7 @@ bool Particle::Update(GameRound* round) {
   age++;
   Point pt = loc.GetPoint();
   if (loc.x < 0 or loc.x > round->width or loc.y < 0 or loc.y > round->height
-    or round->ground->GetPixel(pt.x, pt.y).a > 0
-    or age > time or age > PARTICLE_MAX_AGE
+    or Map_IsGround(pt.x, pt.y) or age > time or age > PARTICLE_MAX_AGE
   ) alive = false;
 
   return true;
