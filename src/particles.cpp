@@ -27,17 +27,13 @@ bool Particle::Update(GameRound* round) {
   return true;
 }
 
-Particle::Particle(const Vector2D l, const std::string t) {
-  particles.push_back(this);
+SpeechBalloon::SpeechBalloon(const Vector2D l, const std::string t)
+    : Particle(l, { 0.0, -0.05 }, 200, 0xffff00ff, 0.0, 0.0) {
   int len = t.size();
   type = TEXT;
   text = t;
   size = Point(8 * len, 8);
   loc = l - Point(4 * len, 8);
-
-  speed = { 0.0, -0.05 };
   time = 100 + 20 * len;
-  color = 0xffff00ff;
-  gravity = 0.0; wind = 0.0;
 }
 

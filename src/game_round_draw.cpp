@@ -2,25 +2,80 @@
 #include "physics.h"
 #include "olcPixelGameEngine.h"
 #include "util_pge.h"
-#include "draw_pge.h"
 
-std::vector<Area> clean;
+//TODO Move this to utils and make it universal
+olc::Sprite* DiamondSquare(int size, int count) {
+  int jump = 16;
+  while (jump < size) jump *= 2;
+  size = jump * count;
+
+  olc::Sprite* img = new olc::Sprite(size, size);
+  for (int x = 0; x < size; x += jump)
+    for (int y = 0; y < size; y += jump)
+      img->SetPixel(x, y, olc::Pixel(64 + rand() % 128, 0, 0, 255));
+
+  while (jump > 1) {
+    jump /= 2;
+
+    for (int x = jump; x < size; x += jump * 2)
+      for (int y = jump; y < size; y += jump * 2)
+        if (img->GetPixel(x, y).r == 0)
+          img->SetPixel(x, y, olc::Pixel((
+              img->GetPixel(x - jump, y - jump).r
+            + img->GetPixel(x - jump, (y + jump) % size).r
+            + img->GetPixel((x + jump) % size, y - jump).r
+            + img->GetPixel((x + jump) % size, (y + jump) % size).r
+          ) / 4 + rand() % jump - jump / 2, 0, 0, 255));
+
+    for (int x = 0; x < size; x += jump) {
+      for (int y = 0; y < size; y += jump) {
+        if (img->GetPixel(x, y).r > 0) continue;
+        int x1 = x - jump, y1 = y - jump, x2 = x + jump, y2 = y + jump;
+        if (x1 < 0) x1 += size;
+        if (y1 < 0) y1 += size;
+        x2 %= size;
+        y2 %= size;
+        img->SetPixel(x, y, olc::Pixel((
+            img->GetPixel(x1, y).r + img->GetPixel(x2, y).r
+          + img->GetPixel(x, y1).r + img->GetPixel(x, y2).r
+        ) / 4 + rand() % jump - jump / 2, 0, 0, 255));
+      }
+    }
+  }
+
+  return img;
+}
+
+// Variables to hold map and its properties
 olc::Sprite* background = NULL;
 olc::Sprite* ground = NULL;
+Point offset = { 2, 3 };
+// Pixel game engine variables
+extern olc::PixelGameEngine* pge;
+// Variables to hold properties for cleaning map
+std::vector<Area> clean;
+std::set<int> changed;
+std::map<int, Range> columns;
 
 uint8_t Map_IsGround(int x, int y) {
-  return ground->GetPixel(x, y).a;
+  if (ground == NULL) return 0;
+  else return ground->GetPixel(x, y).a;
 }
 
 uint32_t Map_GetColor(int x, int y) {
-  return ground->GetPixel(x, y).n;
+  if (ground == NULL) return 0;
+  else return ground->GetPixel(x, y).n;
 }
 
 void Map_ClearPixel(int x, int y) {
+  if (ground == NULL) return;
+
   ground->SetPixel(x, y, { 0x00000000 });
 }
 
 void Map_ClearCircle(int cx, int cy, int size) {
+  if (ground == NULL) return;
+
   int rr = size * size, yy;
   for (int x = cx - size; x < cx + size; x++)
     if (x >= 0 and x < ground->width)
@@ -40,6 +95,8 @@ void Map_ClearCircle(int cx, int cy, int size) {
 }
 
 void Map_MovePixel(int x1, int y1, int x2, int y2) {
+  if (ground == NULL) return;
+
   ground->SetPixel(x2, y2, ground->GetPixel(x1, y1));
   ground->SetPixel(x1, y1, { 0x00000000 });
 }
@@ -101,7 +158,7 @@ void Map_CreateMap(GameRound* round) {
     for (int y = h; y < round->height; y++) {
       col = plasma->GetPixel(x % plasma->width, y % plasma->height);
       col.r = (col.r + 255 - y * 255 / round->height) / 2;
-//      col.b = 255 - y * 256 / height;
+      col.g = (64 - y * 64 / round->height) * col.r / 256;
       ground->SetPixel(x, y, col);
     }
   }
@@ -110,66 +167,20 @@ void Map_CreateMap(GameRound* round) {
 }
 
 void Map_DestroyMap() {
-/* TODO Find out why this creates segfault!
   if (background != NULL) delete background;
+  background = NULL;
   if (ground != NULL) delete ground;
-*/
+  ground = NULL;
+  if (game_round != NULL) delete game_round;
+  game_round = NULL;
 }
 
-//TODO Move this to utils and make it universal
-olc::Sprite* DiamondSquare(int size, int count) {
-  int jump = 16;
-  while (jump < size) jump *= 2;
-  size = jump * count;
-
-  olc::Sprite* img = new olc::Sprite(size, size);
-  for (int x = 0; x < size; x += jump)
-    for (int y = 0; y < size; y += jump)
-      img->SetPixel(x, y, olc::Pixel(64 + rand() % 128, 0, 0, 255));
-
-  while (jump > 1) {
-    jump /= 2;
-
-    for (int x = jump; x < size; x += jump * 2)
-      for (int y = jump; y < size; y += jump * 2)
-        if (img->GetPixel(x, y).r == 0)
-          img->SetPixel(x, y, olc::Pixel((
-              img->GetPixel(x - jump, y - jump).r
-            + img->GetPixel(x - jump, (y + jump) % size).r
-            + img->GetPixel((x + jump) % size, y - jump).r
-            + img->GetPixel((x + jump) % size, (y + jump) % size).r
-          ) / 4 + rand() % jump - jump / 2, 0, 0, 255));
-
-    for (int x = 0; x < size; x += jump) {
-      for (int y = 0; y < size; y += jump) {
-        if (img->GetPixel(x, y).r > 0) continue;
-        int x1 = x - jump, y1 = y - jump, x2 = x + jump, y2 = y + jump;
-        if (x1 < 0) x1 += size;
-        if (y1 < 0) y1 += size;
-        x2 %= size;
-        y2 %= size;
-        img->SetPixel(x, y, olc::Pixel((
-            img->GetPixel(x1, y).r + img->GetPixel(x2, y).r
-          + img->GetPixel(x, y1).r + img->GetPixel(x, y2).r
-        ) / 4 + rand() % jump - jump / 2, 0, 0, 255));
-      }
-    }
-  }
-
-  return img;
-}
-
-DrawRound::DrawRound(olc::PixelGameEngine* eng, GameRound* rnd) {
-  pge = eng; round = rnd;
-}
-
-DrawRound::~DrawRound() {}
-
-bool DrawRound::ClearArea(Area area) {
-  if (background == NULL) pge->FillRect(
-    offset.x + area.x, offset.y + area.y, area.w, area.h, olc::BLACK);
-  else pge->DrawPartialSprite(offset.x + area.x - 1, offset.y + area.y - 1,
+bool ClearArea(Area area) {
+  if (background != NULL)
+    pge->DrawPartialSprite(offset.x + area.x - 1, offset.y + area.y - 1,
     background, area.x - 1, area.y - 1, area.w + 2, area.h + 2);
+  else pge->FillRect(
+    offset.x + area.x, offset.y + area.y, area.w, area.h, olc::BLACK);
 
   pge->DrawPartialSprite(offset.x + area.x - 1, offset.y + area.y - 1,
     ground, area.x - 1, area.y - 1, area.w + 2, area.h + 2);
@@ -177,13 +188,20 @@ bool DrawRound::ClearArea(Area area) {
   return true;
 }
 
-bool DrawRound::ClearColumn(int x) {
+bool ClearColumn(int x) {
   if (columns[x].s < 0) return true;
 
-  for (int y = columns[x].s; y <= columns[x].e; y++) {
-    olc::Pixel px = ground->GetPixel(x, y);
-    if (px.a == 0) px = background->GetPixel(x, y);
-    pge->Draw(offset.x + x, offset.y + y, px);
+  if (background != NULL) {
+    for (int y = columns[x].s; y <= columns[x].e; y++) {
+      olc::Pixel px = ground->GetPixel(x, y);
+      if (px.a == 0) px = background->GetPixel(x, y);
+      pge->Draw(offset.x + x, offset.y + y, px);
+    }
+  } else {
+    for (int y = columns[x].s; y <= columns[x].e; y++) {
+      olc::Pixel px = ground->GetPixel(x, y);
+      if (px.a == 0) pge->Draw(offset.x + x, offset.y + y, olc::BLACK);
+    }
   }
 
   columns[x] = Range();
@@ -191,14 +209,15 @@ bool DrawRound::ClearColumn(int x) {
   return true;
 }
 
-bool DrawRound::Clear() {
+bool DrawRound_Clear() {
+  if (ground == NULL) return false;
+
   olc::Pixel::Mode m = pge->GetPixelMode();
 
   pge->SetPixelMode(olc::Pixel::Mode::MASK);
-  for (auto obj: projectiles) ClearArea(obj->GetArea());
-  for (auto obj: explosions) ClearArea(obj->GetArea());
-  for (Tank* tnk: round->tanks) ClearArea(tnk->GetArea());
-  for (int x = 0; x < round->width; x++) ClearColumn(x);
+  for (auto obj: objects) ClearArea(obj->GetArea());
+  for (Tank* tnk: game_round->tanks) ClearArea(tnk->GetArea());
+  for (int x = 0; x < game_round->width; x++) ClearColumn(x);
   for (auto par: particles) {
     Point pt = par->loc.GetPoint();
     olc::Pixel px = ground->GetPixel(pt.x, pt.y);
@@ -211,24 +230,72 @@ bool DrawRound::Clear() {
   return true;
 }
 
-bool DrawRound::Draw() {
+bool Object::Draw() { return false; }
+
+bool Projectile::Draw() {
+  if (!alive) return false;
+
+  Point p = offset + loc.GetPoint();
+  if (p.y > 0) pge->FillCircle(p.x, p.y, 1);
+  else {
+    pge->DrawLine(p.x, 0, p.x, 2);
+    pge->DrawLine(p.x - 1, 1, p.x + 1, 1);
+  }
+
+  return true;
+}
+
+bool Explosion::Draw() {
+  if (!alive) return true;
+
+  Point p = offset + loc.GetPoint();
+  pge->FillCircle(p.x, p.y, size, color);
+
+  return true;
+}
+
+bool Particle::Draw() {
+  if (!alive) return true;
+
+  Point pt = loc.GetPoint() + offset;
+  pge->Draw(pt.x, pt.y, color);
+
+  return true;
+}
+
+bool SpeechBalloon::Draw() {
+  if (!alive) return true;
+
+  Point pt = loc.GetPoint() + offset;
+  Point sz = size;
+  Area a = Area(pt.x - 2, pt.y - 2, sz.x + 4, sz.y + 4);
+  pge->FillRect(a.x, a.y, a.w, a.h, olc::WHITE);
+  pge->DrawString(pt.x, pt.y, text, olc::BLACK);
+  clean.push_back(a - offset);
+
+  return true;
+}
+
+bool DrawRound_Draw() {
+  if (ground == NULL) return false;
+
   olc::Pixel::Mode m = pge->GetPixelMode();
   pge->SetPixelMode(olc::Pixel::Mode::MASK);
 
-  if (round->refresh) {
+  if (game_round->refresh) {
     pge->FillRect(0, 0, pge->ScreenWidth(), pge->ScreenHeight(), olc::BLACK);
 
     if (background != NULL) pge->DrawSprite(offset.x, offset.y, background);
 
     pge->DrawSprite(offset.x, offset.y, ground);
 
-    round->refresh = false;
+    game_round->refresh = false;
   }
 
   pge->FillRect(0, 0, pge->ScreenWidth(), 3, { 128, 128, 255 });
   pge->DrawLine(0, 1, pge->ScreenWidth(), 1, olc::BLACK);
 
-  for (Tank* tnk: round->tanks) {
+  for (Tank* tnk: game_round->tanks) {
     if (!tnk->alive) continue;
     Point loc = tnk->loc + offset;
     Point ep = loc + VectorFromAngle(tnk->angle, 10).GetPoint();
@@ -238,14 +305,14 @@ bool DrawRound::Draw() {
   }
 
   pge->SetPixelMode(m);
-  for (auto obj: projectiles) DrawObject(obj);
-  for (auto obj: explosions) DrawObject(obj);
+  for (auto obj: objects) obj->Draw();
 
-  for (auto par: particles) DrawParticle(par);
+  for (auto par: particles) par->Draw();
 
-  if (round->selected_tank != NULL) DrawInterface();
+  if (game_round->selected_tank != NULL)
+    DrawRound_Interface(game_round->selected_tank);
 
-  if (round->state == GameRound::SCORES) DrawScores();
+  if (game_round->state == GameRound::SCORES) DrawRound_Scores();
 
   pge->SetPixelMode(m);
 
@@ -253,17 +320,16 @@ bool DrawRound::Draw() {
 }
 
 const uint32_t DOTLINE = 0b10000000100000001000000010000000;
-bool DrawRound::DrawInterface() {
-  Tank* tank = round->selected_tank;
+bool DrawRound_Interface(Tank* tank) {
   char stats[150] = { 0 };
   sprintf(stats,
     "Power: %4d | Angle: %3d | Score: %-10d | Health: %d%% | Wind: %2.1f",
-    tank->power, tank->angle, tank->player->score, tank->health, round->wind.x*100.0);
+    tank->power, tank->angle, tank->player->score, tank->health, game_round->wind.x*100.0);
   pge->FillRect(0, 0, pge->ScreenWidth(), 24, olc::BLACK);
   pge->DrawString(4, 4, stats, olc::WHITE, 2);
-  if (round->wind.x != 0) {
-    int sx = round->width / 2, sy = 32;
-    int wx = (int)(round->wind.x * 100.0), ww = (int)(round->wind.x * 10.0);
+  if (game_round->wind.x != 0) {
+    int sx = game_round->width / 2, sy = 32;
+    int wx = (int)(game_round->wind.x * 100.0), ww = (int)(game_round->wind.x * 10.0);
     if (wx > 0) pge->FillRect(sx, sy - 1, wx, 3, olc::YELLOW);
     else pge->FillRect(sx + wx, sy - 1, -wx, 3, olc::YELLOW);
     pge->FillTriangle(sx+wx, sy-4, sx+wx, sy+4, sx+wx+ww, sy, olc::YELLOW);
@@ -275,7 +341,7 @@ bool DrawRound::DrawInterface() {
   pge->DrawLine(loc.x, loc.y, ep.x, ep.y, olc::GREY, DOTLINE);
   clean.push_back({ tank->loc, ep - offset });
 
-  for (Tank* tnk: round->tanks) {
+  for (Tank* tnk: game_round->tanks) {
     if (!tnk->alive) continue;
     olc::Pixel col = olc::GREEN;
     if      (tnk->health < 10) col = olc::RED;
@@ -290,76 +356,19 @@ bool DrawRound::DrawInterface() {
   return true;
 }
 
-bool DrawRound::DrawScores() {
+bool DrawRound_Scores() {
   char buf[20] = { 0 };
   sprintf(buf, "Round: %3d / %-3d",
-    game_rounds - round->rounds_left + 1, game_rounds);
-  pge->DrawString(round->width / 2 - 144, 16, buf, olc::WHITE, 2);
+    game_rounds - game_round->rounds_left + 1, game_rounds);
+  pge->DrawString(game_round->width / 2 - 144, 16, buf, olc::WHITE, 2);
 
   std::sort(players.begin(), players.end(),
     [](const Player* a, const Player* b) { return a->score > b->score; });
-  int sx = round->width / 2 - 240, sy = 48, lh = 24, i = 0;
+  int sx = game_round->width / 2 - 240, sy = 48, lh = 24, i = 0;
   for (Player* plr: players) {
     sprintf(buf, "%15s   %-10d", plr->name.c_str(), plr->score);
     pge->DrawString(sx, sy + i * lh, buf, olc::WHITE, 2);
     pge->FillRect(sx + 256, sy + i++ * lh + 2, 16, 16, plr->color);
-  }
-
-  return true;
-}
-
-bool DrawRound::DrawObject(const Object* obj) {
-/*
-  switch (obj->type) {
-    case Object::PROJECTILE: DrawObject(obj->GetProjectile()); break;
-    case Object::EXPLOSION:  DrawObject(obj->GetExplosion()); break;
-    default:
-      Log(0, "Unknown object type");
-      return false;
-  }
-*/
-  return true;
-}
-
-bool DrawRound::DrawObject(const Projectile* proj) {
-  if (!proj->alive) return false;
-
-  Point p = offset + proj->loc.GetPoint();
-  if (p.y > 0) pge->FillCircle(p.x, p.y, 1);
-  else {
-    pge->DrawLine(p.x, 0, p.x, 2);
-    pge->DrawLine(p.x - 1, 1, p.x + 1, 1);
-  }
-
-  return true;
-}
-
-bool DrawRound::DrawObject(const Explosion* exp) {
-  if (!exp->alive) return false;
-
-  Point p = offset + exp->loc.GetPoint();
-  pge->FillCircle(p.x, p.y, exp->size, exp->color);
-
-  return true;
-}
-
-bool DrawRound::DrawParticle(const Particle* par) {
-  switch (par->type) {
-    case Particle::DEFAULT: {
-      Point pt = par->loc.GetPoint() + offset;
-      pge->Draw(pt.x, pt.y, par->color);
-      break;
-    } case Particle::TEXT: {
-      Point pt = par->loc.GetPoint() + offset;
-      Point sz = par->size;
-      Area a = Area(pt.x - 2, pt.y - 2, sz.x + 4, sz.y + 4);
-      pge->FillRect(a.x, a.y, a.w, a.h, olc::WHITE);
-      pge->DrawString(pt.x, pt.y, par->text, olc::BLACK);
-      clean.push_back(a - offset);
-      break;
-    } default: {
-      Log(0, "Unknown particle type for drawing");
-    }
   }
 
   return true;

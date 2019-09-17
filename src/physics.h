@@ -16,18 +16,24 @@ struct Particle {
   // Physical properties
   Vector2D loc, speed;
   float gravity = 1.0, wind = 1.0;
-  // Properties for default particle
+  // Particle color
   uint32_t color;
-  // Properties for text
-  std::string text;
-  Point size;
 
   Particle(const Vector2D, const Vector2D, const int = 50,
     const uint32_t = 0xff808080, const float = 0.1, const float = 0.1);
 
-  Particle(const Vector2D, const std::string);
-
   virtual bool Update(GameRound*);
+
+  virtual bool Draw();
+};
+
+struct SpeechBalloon : Particle {
+  std::string text;
+  Point size;
+
+  SpeechBalloon(const Vector2D, const std::string);
+
+  bool Draw() override;
 };
 
 struct Object {
@@ -42,12 +48,14 @@ struct Object {
   Object(Tank*, Vector2D);
   virtual bool Update(GameRound*);
   virtual Area GetArea();
+  virtual bool Draw();
 };
 
 struct Projectile : Object {
   Projectile(Tank*, Vector2D, Vector2D);
   bool Update(GameRound*) override;
   Area GetArea() override;
+  bool Draw() override;
 };
 
 struct Explosion : Object {
@@ -57,11 +65,11 @@ struct Explosion : Object {
   Explosion(Tank*, Vector2D, int, int);
   bool Update(GameRound*) override;
   Area GetArea() override;
+  bool Draw() override;
 };
 
-extern std::vector<Particle*>   particles;
-extern std::vector<Projectile*> projectiles;
-extern std::vector<Explosion*>  explosions;
+extern std::vector<Particle*> particles;
+extern std::vector<Object*>  objects;
 
 void CleanObjects();
 

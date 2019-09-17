@@ -1,15 +1,14 @@
 #include "game.h"
+#include "physics.h"
 #include "olcPixelGameEngine.h"
-#include "draw_pge.h"
 #include "menu.h"
 
 const float KEY_TIME = 0.1;
+olc::PixelGameEngine* pge = NULL;
 int WIDTH = 1200, HEIGHT = 900, PIXEL_SIZE = 1;
 
 class DestructionClient : public olc::PixelGameEngine {
   bool running = false, paused = false;
-  GameRound* round = NULL;
-  DrawRound* round_draw = NULL;
   MainMenu* menu = NULL;
   int rounds_left = 0;
   float fTime = 0.0;
@@ -21,14 +20,17 @@ class DestructionClient : public olc::PixelGameEngine {
 public:
   DestructionClient() {
     sAppName = "Destructed earth";
+
+    if (pge != NULL) delete pge;
+    pge = this;
   }
 
   bool OnUserCreate() override {
     running = true;
 
-    running &= Init();
-
     srand(time(NULL));
+
+    running &= Init();
 
     menu = new MainMenu();
 
@@ -38,7 +40,7 @@ public:
   bool OnUserUpdate(float fElapsedTime) override {
     fTime += fElapsedTime;
     if (GetKey(olc::Key::ESCAPE).bPressed) {
-      if (round != NULL) round->refresh = true;
+      if (game_round != NULL) game_round->refresh = true;
       paused = !paused;
     }
     if (paused && GetKey(olc::Key::F10).bPressed) running = false;
@@ -53,7 +55,7 @@ public:
   }
 
   bool OnUserDestroy() override {
-    if (round != NULL) delete round;
+    if (game_round != NULL) delete game_round;
     if (menu != NULL) delete menu;
 
     for (Player* pp: players) delete pp;
@@ -99,23 +101,20 @@ void DestructionClient::MainLoop() {
       delete menu;
       menu = NULL;
     }
-  } else if (round != NULL) {
-    if (round_draw == NULL) round_draw = new DrawRound(this, round);
-    round_draw->Clear();
+  } else if (game_round != NULL) {
+    DrawRound_Clear();
     CleanObjects();
-    round->Update(ReadKeys(this));
-    round_draw->Draw();
-    if (round->state == GameRound::END) {
+    game_round->Update(ReadKeys(this));
+    DrawRound_Draw();
+    if (game_round->state == GameRound::END) {
       rounds_left--;
-      delete round;
-      round = NULL;
-      if (round_draw != NULL) delete round_draw;
-      round_draw = NULL;
       Map_DestroyMap();
+      delete game_round;
+      game_round = NULL;
     }
   } else if (rounds_left > 0) {
-    round = new GameRound(WIDTH - 4, HEIGHT - 5, players, rounds_left);
-    round->CreateRound();
+    game_round = new GameRound(WIDTH - 4, HEIGHT - 5, players, rounds_left);
+    game_round->CreateRound();
   } else {
     menu = new MainMenu();
   }

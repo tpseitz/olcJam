@@ -112,9 +112,12 @@ bool MainMenu::DrawMenu(olc::PixelGameEngine* pge) {
   for (Player* plr: players) {
     x = 16 + i++ * 32;
     switch (plr->type) {
-      case HUMAN:  pge->DrawString(x + 5, y + 5, "H", plr->color, 2); break;
-      case RANDOM: pge->DrawString(x + 5, y + 5, "R", plr->color, 2); break;
-      default: pge->DrawCircle(x + 12, y + 12, 8, olc::WHITE);
+      case Player::HUMAN:
+        pge->DrawString(x + 5, y + 5, "H", plr->color, 2); break;
+      case Player::RANDOM:
+        pge->DrawString(x + 5, y + 5, "R", plr->color, 2); break;
+      default:
+        pge->DrawCircle(x + 12, y + 12, 8, olc::WHITE);
     }
     pge->DrawRect(x, y, 24, 24, olc::WHITE);
   }

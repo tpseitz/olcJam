@@ -16,23 +16,23 @@ const int POINTS_KILL = 100;
 const int POINTS_SUICIDE = -750;
 //const int POINTS_ = ;
 
-enum PlayerType { NONE, HUMAN, RANDOM };
-
-extern int INITIAL_PLAYERS;
-extern PlayerType DEFAULT_PLAYER_TYPE;
-extern int PHYSICS_ROUNDS;
-
 struct Interface { int angdir = 0, powdir = 0; bool ready = false; };
 
 struct Player {
-  PlayerType type;
+  enum Type { NONE, HUMAN, RANDOM };
+
+  Type type;
   std::string name = "[no name]";
   uint32_t color;
   int64_t score = 0;
 
-  Player(std::string, uint32_t, PlayerType);
+  Player(std::string, uint32_t, Type);
   void SwitchType();
 };
+
+extern int INITIAL_PLAYERS;
+extern Player::Type DEFAULT_PLAYER_TYPE;
+extern int PHYSICS_ROUNDS;
 
 // Player lists and round properties
 extern std::vector<Player*> players;
@@ -102,6 +102,8 @@ private:
   bool UpdateScores(const Interface);
 };
 
+extern GameRound* game_round;
+
 uint8_t Map_IsGround(int, int);
 uint32_t Map_GetColor(int, int);
 void Map_ClearPixel(int, int);
@@ -109,6 +111,11 @@ void Map_ClearCircle(int, int, int);
 void Map_MovePixel(int, int, int, int);
 void Map_CreateMap(GameRound*);
 void Map_DestroyMap();
+
+bool DrawRound_Draw();
+bool DrawRound_Clear();
+bool DrawRound_Interface(Tank*);
+bool DrawRound_Scores();
 
 #endif
 

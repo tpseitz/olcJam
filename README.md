@@ -26,7 +26,6 @@ time.
 * Natural phenomenons: thunder, meteors
 * Actual graphics
 * Sound
-* Move drawing and pge separate from physics
 * Server / client possibility
 
 BSD 3-Clause License

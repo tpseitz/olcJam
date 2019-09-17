@@ -2,20 +2,13 @@
 
 int PHYSICS_ROUNDS = 3;
 
-std::vector<Projectile*> projectiles;
-std::vector<Explosion*>  explosions;
+std::vector<Object*> objects;
 
 void CleanObjects() {
-  for (int i = projectiles.size()-1; i >= 0; i--) {
-    if (projectiles[i]->alive) continue;
-    Projectile* obj = projectiles[i];
-    projectiles.erase(projectiles.begin() + i);
-    delete obj;
-  }
-  for (int i = explosions.size()-1; i >= 0; i--) {
-    if (explosions[i]->alive) continue;
-    Explosion* obj = explosions[i];
-    explosions.erase(explosions.begin() + i);
+  for (int i = objects.size()-1; i >= 0; i--) {
+    if (objects[i]->alive) continue;
+    Object* obj = objects[i];
+    objects.erase(objects.begin() + i);
     delete obj;
   }
 }
@@ -36,7 +29,7 @@ Area Object::GetArea() {
 
 Projectile::Projectile(Tank* parent, Vector2D location, Vector2D speed)
     : Object(parent, location) {
-  projectiles.push_back(this);
+  objects.push_back(this);
 
   this->speed = speed;
   physics = true;
@@ -75,7 +68,7 @@ Area Projectile::GetArea() {
 
 Explosion::Explosion(Tank* parent, Vector2D location, int size, int time)
     : Object(parent, location) {
-  explosions.push_back(this);
+  objects.push_back(this);
 
   this->size = size;
   this->time = time * PHYSICS_ROUNDS;
@@ -116,7 +109,7 @@ bool Explosion::Update(GameRound* game) {
           }
           // Display death message
           std::string text = RandomChoice(quotes_death);
-          new Particle(Vector2D(tnk->loc) - Vector2D(0.0, 15.0), text);
+          new SpeechBalloon(Vector2D(tnk->loc) - Vector2D(0.0, 15.0), text);
           Log(5, tnk->player->name + " dies: " + text); 
         }
       }

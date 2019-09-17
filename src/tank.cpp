@@ -10,7 +10,7 @@ Tank::Tank(Player* plr) {
 
 bool Tank::Prepare(const Interface inter) {
   switch (player->type) {
-    case HUMAN: {
+    case Player::HUMAN: {
       angle += inter.angdir;
       power += inter.powdir;
       if (inter.ready) ready = true;
@@ -19,7 +19,7 @@ bool Tank::Prepare(const Interface inter) {
 
       return true;
 
-    } case RANDOM: {
+    } case Player::RANDOM: {
       angle = rand() % (MAX_ANGLE - MIN_ANGLE) + MIN_ANGLE;
       power = rand() % MAX_POWER;
       ready = true;

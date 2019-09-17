@@ -1,13 +1,13 @@
 #include "game.h"
 #include "physics.h"
 
-// Variables for dropping ground
-std::set<int> changed;
-std::map<int, Range> columns;
-
+// Default player setup for game
 int INITIAL_PLAYERS = 2;
-PlayerType DEFAULT_PLAYER_TYPE = HUMAN;
+Player::Type DEFAULT_PLAYER_TYPE = Player::HUMAN;
 
+// Variable for game round
+GameRound* game_round = NULL;
+// Variabe to store players
 std::vector<Player*> players;
 // Quote lists
 std::vector<std::string> npc_names;
@@ -16,7 +16,7 @@ std::vector<std::string> quotes_death;
 
 int game_rounds = 5;
 
-Player::Player(std::string name, uint32_t col, PlayerType tp) {
+Player::Player(std::string name, uint32_t col, Player::Type tp) {
   score = 0;
   this->name = name;
   color = col;
@@ -25,8 +25,8 @@ Player::Player(std::string name, uint32_t col, PlayerType tp) {
 
 void Player::SwitchType() {
   switch (type) {
-    case HUMAN: type = RANDOM; break;
-    case RANDOM: type = HUMAN; break;
+    case Player::HUMAN: type = Player::RANDOM; break;
+    case Player::RANDOM: type = Player::HUMAN; break;
   }
 }
 
@@ -45,7 +45,7 @@ bool Init() {
 bool PrepareGame() {
   std::set<int> names_exclude;
   for (Player* plr: players) {
-    if (plr->type == RANDOM)
+    if (plr->type == Player::RANDOM)
       plr->name = RandomChoice(npc_names, &names_exclude);
     plr->score = 0;
   }
@@ -54,6 +54,9 @@ bool PrepareGame() {
 }
 
 GameRound::GameRound(int w, int h, std::vector<Player*> players, int rounds) {
+  if (game_round != NULL) delete game_round;
+  game_round = this;
+
   width = w;
   height = h;
   rounds_left = rounds;

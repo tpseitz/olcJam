@@ -64,12 +64,8 @@ bool GameRound::UpdatePreparation(const Interface inter) {
 }
 
 bool GameRound::UpdateShoot() {
-/*
-  for (auto obj: projectiles) delete obj;
-  projectiles.clear();
-  for (auto obj: explosions) delete obj;
-  explosions.clear();
-*/
+  for (auto obj: objects) delete obj;
+  objects.clear();
   tic = 0;
 
   for (Tank* tnk: tanks) {
@@ -79,7 +75,7 @@ bool GameRound::UpdateShoot() {
       new Projectile(tnk, loc, shot);
       if (rand() % 10 == 0) {
         std::string text = RandomChoice(quotes_shoot);
-        new Particle(loc - Vector2D(0.0, 15.0), text);
+        new SpeechBalloon(loc - Vector2D(0.0, 15.0), text);
         Log(5, tnk->player->name + " shoots: " + text);
       }
     }
@@ -130,12 +126,7 @@ bool GameRound::UpdateShooting() {
     }
     for (int e: del) changed.erase(e);
 
-    for (auto obj: projectiles) {
-      if (!obj->alive) continue;
-      alive++;
-      obj->Update(this);
-    }
-    for (auto obj: explosions) {
+    for (auto obj: objects) {
       if (!obj->alive) continue;
       alive++;
       obj->Update(this);
@@ -166,10 +157,8 @@ bool GameRound::UpdateShooting() {
 }
 
 bool GameRound::UpdateEnding() {
-  for (auto obj: projectiles) delete obj;
-  projectiles.clear();
-  for (auto obj: explosions) delete obj;
-  explosions.clear();
+  for (auto obj: objects) delete obj;
+  objects.clear();
 
   wind.x += (float)((double)((rand() % 100) - 50) / 1000.0);
 
@@ -193,7 +182,7 @@ bool GameRound::UpdateScores(const Interface inter) {
 
   int humans = 0;
   for (Tank* tnk: tanks)
-    if (tnk->player->type == HUMAN) humans++;
+    if (tnk->player->type == Player::HUMAN) humans++;
 
   if (tic > 5 and inter.ready) { state = END; refresh = true; }
   else if (tic > 300 and humans == 0) { state = END; refresh = true; }
