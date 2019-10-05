@@ -12,6 +12,7 @@ bool DrawHelp(olc::PixelGameEngine* pge) {
   pge->DrawString(sx, sy + i++ * lh, "Click player to change type", olc::WHITE, 2);
   pge->DrawString(sx, sy + i++ * lh, "H: Human player", olc::WHITE, 2);
   pge->DrawString(sx, sy + i++ * lh, "R: Random bot", olc::WHITE, 2);
+  pge->DrawString(sx, sy + i++ * lh, "D: Dummy box", olc::WHITE, 2);
   i++;
   pge->DrawString(sx, sy + i++ * lh, "How the game works", olc::WHITE, 3);
   pge->DrawLine(sx - 2, sy + i * lh, sx + 432, sy + i * lh, olc::WHITE, DASH_BITS);
@@ -31,28 +32,29 @@ bool MainMenu::Update(olc::PixelGameEngine* pge) {
 
   if (mb1.bPressed) {
     if (my >= 13 and my <= 35) {
-      if      (mx >= 138 and mx <= 160) game_rounds--;
-      else if (mx >= 234 and mx <= 256) game_rounds++;
-      else if (mx >= 426 and mx <= 448 and players.size() > 2) {
-        Player* plr = players.back();
-        players.pop_back();
+      if      (mx >= 138 and mx <= 160) configuration.rounds--;
+      else if (mx >= 234 and mx <= 256) configuration.rounds++;
+      else if (mx >= 426 and mx <= 448 and configuration.players.size() > 2) {
+        Player* plr = configuration.players.back();
+        configuration.players.pop_back();
         delete plr;
-      }
-      else if (mx >= 506 and mx <= 528 and players.size() < MAX_PLAYERS)
-        players.push_back(
-          new Player("Player " + std::to_string(players.size()),
-            COLOR_LIST[players.size() % COLOR_COUNT], DEFAULT_PLAYER_TYPE));
+      } else if (mx >= 506 and mx <= 528
+          and configuration.players.size() < MAX_PLAYERS)
+        configuration.players.push_back(
+          new Player("Player " + std::to_string(configuration.players.size()),
+            COLOR_LIST[configuration.players.size() % COLOR_COUNT],
+            configuration.default_player_type));
     } else if (my >= 48 and my <= 72) {
-      for (int i = 0; i < players.size(); i++) {
+      for (int i = 0; i < configuration.players.size(); i++) {
         int x = 16 + 32 * i;
         if (mx >= x and mx <= x + 24) {
-          players[i]->SwitchType();
+          configuration.players[i]->SwitchType();
           break;
         }
       }
     } else if (my >= 88 and my <= 112) {
       if      (mx >= 16 and mx <= 80) {
-        PrepareGame();
+        Game_Prepare();
         ready = true;
       } else if (mx >= 96 and mx <= 192) {
         quit = true; ready = true;
@@ -60,8 +62,8 @@ bool MainMenu::Update(olc::PixelGameEngine* pge) {
     }
   }
 
-  if (game_rounds < 1) game_rounds = 1;
-  if (game_rounds > 100) game_rounds = 100;
+  if (configuration.rounds < 1) configuration.rounds = 1;
+  if (configuration.rounds > 100) configuration.rounds = 100;
 
   return true;
 }
@@ -71,7 +73,7 @@ bool MainMenu::DrawMenu(olc::PixelGameEngine* pge) {
     pge->FillRect(0, 0, pge->ScreenWidth(), pge->ScreenHeight(), olc::BLACK);
 
   pge->FillRect(16, 16, 512, 16, olc::BLACK);
-  pge->FillRect(15, 47, 32 * (players.size() + 1), 26, olc::BLACK);
+  pge->FillRect(15, 47, 32 * (configuration.players.size()+1), 26, olc::BLACK);
   pge->FillRect(15, 87, 176, 25, olc::BLACK);
 
   int mx = pge->GetMouseX(), my = pge->GetMouseY();
@@ -85,7 +87,7 @@ bool MainMenu::DrawMenu(olc::PixelGameEngine* pge) {
     else if (mx >= 506 and mx <= 528)
       pge->FillRect(506, 13, 22, 19, olc::DARK_GREY);
   } else if (my >= 48 and my <= 72) {
-    for (int i = 0; i < players.size(); i++) {
+    for (int i = 0; i < configuration.players.size(); i++) {
       int x = 16 + 32 * i;
       if (mx >= x and mx <= x + 24) {
         pge->FillRect(x, 48, 24, 24, olc::VERY_DARK_GREY);
@@ -100,7 +102,8 @@ bool MainMenu::DrawMenu(olc::PixelGameEngine* pge) {
   }
 
   char buf[34] = { 0 };
-  sprintf(buf,"Rounds: < %3d >  Players: < %2d >",game_rounds, players.size());
+  sprintf(buf,"Rounds: < %3d >  Players: < %2d >",
+    configuration.rounds, configuration.players.size());
   pge->DrawString(16, 16, buf, olc::WHITE, 2);
 
   pge->DrawRect(138, 13, 22, 19, olc::WHITE);
@@ -109,13 +112,15 @@ bool MainMenu::DrawMenu(olc::PixelGameEngine* pge) {
   pge->DrawRect(506, 13, 22, 19, olc::WHITE);
 
   int i = 0, y = 48, x;
-  for (Player* plr: players) {
+  for (Player* plr: configuration.players) {
     x = 16 + i++ * 32;
     switch (plr->type) {
       case Player::HUMAN:
         pge->DrawString(x + 5, y + 5, "H", plr->color, 2); break;
       case Player::RANDOM:
         pge->DrawString(x + 5, y + 5, "R", plr->color, 2); break;
+      case Player::DUMMY:
+        pge->DrawString(x + 5, y + 5, "D", plr->color, 2); break;
       default:
         pge->DrawCircle(x + 12, y + 12, 8, olc::WHITE);
     }

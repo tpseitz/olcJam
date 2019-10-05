@@ -11,7 +11,7 @@ struct Particle {
   // Particle type
   Type type = DEFAULT;
   // Lifetime properties
-  int age = 0, time = 0;
+  float age = 0.0, time = 0.0;
   bool alive = true;
   // Physical properties
   Vector2D loc, speed;
@@ -19,10 +19,10 @@ struct Particle {
   // Particle color
   uint32_t color;
 
-  Particle(const Vector2D, const Vector2D, const int = 50,
-    const uint32_t = 0xff808080, const float = 0.1, const float = 0.1);
+  Particle(const Vector2D, const Vector2D, const float = 1.0,
+    const uint32_t = 0xff808080, const float = 10.0, const float = 10.0);
 
-  virtual bool Update(GameRound*);
+  virtual bool Update(GameRound*, float);
 
   virtual bool Draw();
 };

@@ -5,104 +5,103 @@
 #include <map>
 #include "util.h"
 #include "vector.h"
+#include "players.h"
 
+// Constant limits
 const int MAX_PLAYERS = 16;
-const int MAX_HEALTH = 100;
-const int MIN_ANGLE = -95, MAX_ANGLE =  95;
-const int MIN_POWER = 10, MAX_POWER = 1500;
 
-const int POINTS_WINNER = 1000;
-const int POINTS_KILL = 100;
-const int POINTS_SUICIDE = -750;
-//const int POINTS_ = ;
-
-struct Interface { int angdir = 0, powdir = 0; bool ready = false; };
-
-struct Player {
-  enum Type { NONE, HUMAN, RANDOM };
-
-  Type type;
-  std::string name = "[no name]";
-  uint32_t color;
-  int64_t score = 0;
-
-  Player(std::string, uint32_t, Type);
-  void SwitchType();
-};
-
-extern int INITIAL_PLAYERS;
-extern Player::Type DEFAULT_PLAYER_TYPE;
+// Number of physics rounds between screen draws
 extern int PHYSICS_ROUNDS;
 
-// Player lists and round properties
-extern std::vector<Player*> players;
-extern int game_rounds;
-// Variables for dropping ground
-extern std::set<int> changed;
-extern std::map<int, Range> columns;
-// Lists for particles and physical objects
+// Lists for random names and quotes
 extern std::vector<std::string> npc_names;
 extern std::vector<std::string> quotes_shoot;
 extern std::vector<std::string> quotes_death;
 
-bool Init();
+// Set to store map columns where ground may have been changed
+extern std::set<int> changed;
+// Range where columns did change. This will be cleared when mab has been
+// cleaned on screen
+extern std::map<int, Range> columns;
 
-bool PrepareGame();
+// Struct to hold game properties
+struct Configuration {
+  enum WallType { NONE, CONCRETE, RUBBER, WARP, RANDOM };
 
-struct Tank {
-  Player* player = NULL;
-  Point loc = { -1, -1 };
-  int angle = 0, power = 200;
-  int health = MAX_HEALTH, fall = 0;
-  bool alive = true;
-  bool ready = false;
+  // Game properties
+  int rounds = 4;
+  int player_count = 2;
+  Player::Type default_player_type = Player::HUMAN;
+  // Map properties
+  int width = 400, height = 300;
+  WallType wall = NONE;
+  bool wind = true, changing_wind = true;
+  Vector2D gravity = { 0.0, 5.0 };
+  // Scoring values
+  int points_winning = 1000;
+  int points_kill = 200;
+  int points_suicide = -250;
+  Fraction points_damage = { 1, 1 }; // 1
+  Fraction points_self_damage = { -1, 2 }; // -0.5
 
-  Tank();
-  Tank(Player*);
+  // List for players
+  std::vector<Player*> players;
 
-  bool Prepare(const Interface);
-  bool Update();
-  void CheckLimits();
-  Area GetArea();
+  Configuration();
+  ~Configuration();
+
+  void Init();
 };
 
+extern Configuration configuration;
+
 struct GameRound {
-  int width, height;
-  int min = 200, max;
+  enum State { PREPARATION, SHOOT, SHOOTING, ENDING, SCORES, END };
+
+  // Game configuration
+  const Configuration* config;
+  // Map settings
+  int width = 400, height = 300;
+  Configuration::WallType wall = Configuration::NONE;
+  int min = 100, max = 280;
   int initial_jump = 512;
   // Tanks for players
   std::vector<Tank*> tanks;
   Tank* selected_tank = NULL;
-  // Phycis objects
+  // Phycis values
   Vector2D gravity = { 0.0, 5.0 }, wind = { 0.0, 0.0 };
-  int rounds_left = 0, tic = 0;
-  // Switch to refresh screen
-  bool refresh = true;
+  // Round properties
+  int round = 0, tic = 0;
   // Round state
-  enum State { PREPARATION, SHOOT, SHOOTING, ENDING, SCORES, END };
   State state = PREPARATION, prev_state = PREPARATION;
 
-  GameRound(int, int, std::vector<Player*>, int);
+  // Switch for redrawing screen
+  bool refresh = true;
+
+  GameRound(const Configuration*, const int);
 
   ~GameRound();
 
   bool CreateRound();
 
-  bool Update(const Interface);
+  bool Update();
 
 private:
   bool InsertTanks();
 
   bool UpdateParticles();
 
-  bool UpdatePreparation(const Interface);
+  bool UpdatePreparation();
   bool UpdateShoot();
   bool UpdateShooting();
   bool UpdateEnding();
-  bool UpdateScores(const Interface);
+  bool UpdateScores();
 };
 
 extern GameRound* game_round;
+
+bool Game_Init();
+bool Game_Prepare();
 
 uint8_t Map_IsGround(int, int);
 uint32_t Map_GetColor(int, int);

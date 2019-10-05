@@ -298,10 +298,15 @@ bool DrawRound_Draw() {
   for (Tank* tnk: game_round->tanks) {
     if (!tnk->alive) continue;
     Point loc = tnk->loc + offset;
-    Point ep = loc + VectorFromAngle(tnk->angle, 10).GetPoint();
-    pge->DrawLine(loc.x, loc.y, ep.x, ep.y, tnk->player->color);
-    pge->FillCircle(loc.x, loc.y, 4, olc::BLACK);
-    pge->FillCircle(loc.x, loc.y, 3, tnk->player->color);
+    if (tnk->player->type == Player::DUMMY) {
+      pge->FillRect(loc.x - 3, loc.y - 5, 7, 6, tnk->player->color);
+      pge->DrawRect(loc.x - 4, loc.y - 6, 8, 7, olc::BLACK);
+    } else {
+      Point ep = loc + VectorFromAngle(tnk->angle, 10).GetPoint();
+      pge->DrawLine(loc.x, loc.y, ep.x, ep.y, tnk->player->color);
+      pge->FillCircle(loc.x, loc.y, 4, olc::BLACK);
+      pge->FillCircle(loc.x, loc.y, 3, tnk->player->color);
+    }
   }
 
   pge->SetPixelMode(m);
@@ -337,6 +342,7 @@ bool DrawRound_Interface(Tank* tank) {
 
   Point loc = tank->loc + offset;
   pge->DrawCircle(loc.x, loc.y, 25, olc::WHITE);
+  clean.push_back({ loc.x - 26, loc.y - 26, 52, 52 });
   Point ep = (Vector2D(loc) + VectorFromAngle(tank->angle, tank->power / 5)).GetPoint();
   pge->DrawLine(loc.x, loc.y, ep.x, ep.y, olc::GREY, DOTLINE);
   clean.push_back({ tank->loc, ep - offset });
@@ -358,14 +364,17 @@ bool DrawRound_Interface(Tank* tank) {
 
 bool DrawRound_Scores() {
   char buf[20] = { 0 };
-  sprintf(buf, "Round: %3d / %-3d",
-    game_rounds - game_round->rounds_left + 1, game_rounds);
+  sprintf(buf, "Round: %3d / %-3d", game_round->round, configuration.rounds);
   pge->DrawString(game_round->width / 2 - 144, 16, buf, olc::WHITE, 2);
 
-  std::sort(players.begin(), players.end(),
+  std::vector<Player*> tmp;
+  for (Player* plr: configuration.players)
+    if (plr->type != Player::DUMMY)
+      tmp.push_back(plr);
+  std::sort(tmp.begin(), tmp.end(),
     [](const Player* a, const Player* b) { return a->score > b->score; });
   int sx = game_round->width / 2 - 240, sy = 48, lh = 24, i = 0;
-  for (Player* plr: players) {
+  for (Player* plr: tmp) {
     sprintf(buf, "%15s   %-10d", plr->name.c_str(), plr->score);
     pge->DrawString(sx, sy + i * lh, buf, olc::WHITE, 2);
     pge->FillRect(sx + 256, sy + i++ * lh + 2, 16, 16, plr->color);

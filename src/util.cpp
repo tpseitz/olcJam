@@ -94,3 +94,17 @@ std::string RandomChoice(
   return list[rand() % list.size()];
 }
 
+
+Fraction::Fraction(int num, int den) {
+  numerator = num; denominator = den;
+  if (denominator == 0) ; //TODO Cause exception
+}
+
+int Fraction::operator*(int other) const {
+  return other * numerator / denominator;
+}
+
+int Fraction::operator/(int other) const {
+  return other * denominator / numerator;
+}
+

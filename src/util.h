@@ -39,4 +39,13 @@ std::vector<std::string> ReadLines(const std::string);
 
 std::string RandomChoice(const std::vector<std::string>, std::set<int>* =NULL);
 
+struct Fraction {
+  int numerator, denominator;
+
+  Fraction(int, int);
+
+  int operator*(int) const;
+  int operator/(int) const;
+};
+
 #endif

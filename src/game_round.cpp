@@ -1,14 +1,10 @@
 #include "game.h"
 #include "physics.h"
 
-// Default player setup for game
-int INITIAL_PLAYERS = 2;
-Player::Type DEFAULT_PLAYER_TYPE = Player::HUMAN;
-
+// Active configuration
+Configuration configuration;
 // Variable for game round
 GameRound* game_round = NULL;
-// Variabe to store players
-std::vector<Player*> players;
 // Quote lists
 std::vector<std::string> npc_names;
 std::vector<std::string> quotes_shoot;
@@ -25,51 +21,85 @@ Player::Player(std::string name, uint32_t col, Player::Type tp) {
 
 void Player::SwitchType() {
   switch (type) {
-    case Player::HUMAN: type = Player::RANDOM; break;
+    case Player::DUMMY:  type = Player::RANDOM; break;
     case Player::RANDOM: type = Player::HUMAN; break;
+    case Player::HUMAN:  type = Player::DUMMY; break;
   }
 }
 
-bool Init() {
+Configuration::Configuration() {}
+
+Configuration::~Configuration() {
+  for (Player* pp: players) delete pp;
+}
+
+void Configuration::Init() {
+  for (int i = 0; i < player_count; i++)
+    players.push_back(new Player("Player " + std::to_string(i),
+      COLOR_LIST[i % COLOR_COUNT], configuration.default_player_type));
+}
+
+bool Game_Init() {
   npc_names    = ReadLines("data/names.txt");
   quotes_shoot = ReadLines("data/shoot.txt");
   quotes_death = ReadLines("data/death.txt");
 
-  for (int i = 0; i < INITIAL_PLAYERS; i++)
-    players.push_back(new Player("Player " + std::to_string(i + 1),
-      COLOR_LIST[i % COLOR_COUNT], DEFAULT_PLAYER_TYPE));
+  configuration.Init();
 
   return true;
 }
 
-bool PrepareGame() {
+bool Game_Prepare() {
   std::set<int> names_exclude;
-  for (Player* plr: players) {
+  int di = 0;
+  for (Player* plr: configuration.players) {
+    // Select random name for computer players
     if (plr->type == Player::RANDOM)
       plr->name = RandomChoice(npc_names, &names_exclude);
+    // All dummy tanks are called Bob
+    if (plr->type == Player::DUMMY)
+      plr->name = "Bob " + std::to_string(di++);
+    // Reset score for each player
     plr->score = 0;
   }
 
   return true;
 }
 
-GameRound::GameRound(int w, int h, std::vector<Player*> players, int rounds) {
+GameRound::GameRound(const Configuration* cfg, const int rnd) {
   if (game_round != NULL) delete game_round;
   game_round = this;
 
-  width = w;
-  height = h;
-  rounds_left = rounds;
+  config = cfg;
+  round = rnd;
+  width = cfg->width;
+  height = cfg->height;
+  wall = cfg->wall;
   max = height - 20;
+  gravity = cfg->gravity;
 
-  wind = { (float)((double)((rand() % 1000) - 500) / 1000.0), 0.0 };
+  if (cfg->wind)
+    wind = { (float)((double)((rand() % 1000) - 500) / 1000.0), 0.0 };
+  else wind = { 0.0, 0.0 };
 
-  int ndx = 0;
-  while (players.size() > 0) {
-    int i = rand() % players.size();
-    tanks.push_back(new Tank(players[i]));
-    players.erase(players.begin() + i);
+  if (wall == Configuration::RANDOM) {
+    switch (rand() % 4) {
+      case 0: wall = Configuration::NONE; break;
+      case 1: wall = Configuration::CONCRETE; break;
+      case 2: wall = Configuration::RUBBER; break;
+      case 3: wall = Configuration::WARP; break;
+    }
   }
+
+  std::vector<Player*> tmp = cfg->players;
+  while (tmp.size() > 0) {
+    int i = rand() % tmp.size();
+    tanks.push_back(new Tank(tmp[i]));
+    tmp.erase(tmp.begin() + i);
+  }
+
+  Log(5, "Round " + std::to_string(round) + " of " \
+    + std::to_string(config->rounds));
 }
 
 GameRound::~GameRound() {

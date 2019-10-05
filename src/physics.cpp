@@ -56,8 +56,11 @@ bool Projectile::Update(GameRound* game) {
     alive = false;
   }
 
-  if (alive and loc.y > 0 and age % 2 == 0)
-    new Particle(loc, {0.0, 0.0}, 100, owner->player->color, -0.05, 0.5);
+  // Create a small trail behind projectile
+  if (alive and loc.y > 0 and age % 4 == 0)
+//    new Particle(loc, { 0.0, 0.0 }, 0.25, owner->player->color, -5.0, 50.0);
+    new Particle(loc, speed / 2 + VectorFromAngle(rand() % 360, 10.0),
+      0.5, owner->player->color, -5.0, 50.0);
 
   return true;
 }
@@ -83,8 +86,9 @@ bool Explosion::Update(GameRound* game) {
   if (col & 255 == 0) col = 0xff808080;
   for (int i = 0; i < power; i++) {
     Vector2D spd = VectorFromAngle(
-      rand() % 360, (float)(rand() % 100) / 100.0);
-    new Particle(loc + spd, spd, 50 + rand() % 100, col);
+      rand() % 360, (float)(rand() % 10000) / 100.0);
+    float lt = (50 + rand() % 100) / 100.0;
+    new Particle(loc + spd / 10.0, spd, lt, col);
   }
   if (age >= time) {
     Map_ClearCircle(pl.x, pl.y, size);
@@ -95,17 +99,20 @@ bool Explosion::Update(GameRound* game) {
       if (dist < size) {
         int dmg = (size - dist) * power;
         tnk->health -= dmg;
-        if (tnk == owner) owner->player->score -= dmg / 2;
-        else owner->player->score += dmg;
+        if (tnk == owner)
+          owner->player->score -= game->config->points_self_damage * dmg;
+        else owner->player->score += game->config->points_damage * dmg;
         if (tnk->health < 0) {
-          if (tnk == owner) owner->player->score += POINTS_SUICIDE;
-          else owner->player->score += POINTS_KILL;
+          if (tnk == owner)
+            owner->player->score += game->config->points_suicide;
+          else owner->player->score += game->config->points_kill;
           tnk->alive = false;
           // Create particles
           for (int i = 0; i < 20; i++) {
             Vector2D spd = VectorFromAngle(
-              rand() % 360, (float)(rand() % 100) / 100.0);
-            new Particle(loc+spd, spd, 50+rand() % 100, tnk->player->color);
+              rand() % 360, (float)(rand() % 10000) / 100.0);
+            float lt = (50 + rand() % 100) / 100.0;
+            new Particle(loc + spd / 10.0, spd, lt, tnk->player->color);
           }
           // Display death message
           std::string text = RandomChoice(quotes_death);

@@ -1,21 +1,30 @@
+#include <chrono>
 #include "physics.h"
 
 const uint32_t FIRE_COLORS[] = { 0xff0000ff, 0xff0080ff, 0xff00ffff };
 
+// Variables to calculate particle timing
+auto t_part = std::chrono::system_clock::now();
+auto t_tmp = std::chrono::system_clock::now();
+
 bool GameRound::UpdateParticles() {
-  for (auto par: particles) par->Update(this);
+  t_tmp = std::chrono::system_clock::now();
+  std::chrono::duration<float> dur = t_tmp - t_part;
+  t_part = t_tmp;
+
+  for (auto par: particles) par->Update(this, dur.count());
 
   for (Tank* tnk: tanks) {
     if (not tnk->alive) continue;
     if (tnk->health < 7) {
-      new Particle(tnk->loc, VectorFromAngle(rand() % 360, 0.025),
-        50 + rand() % 100, FIRE_COLORS[rand() % 3], -0.05, 0.01);
+      new Particle(tnk->loc, VectorFromAngle(rand() % 360, 2.5),
+        (float)(50 + rand() % 100) / 100.0, FIRE_COLORS[rand() % 3], -5.0, 1.0);
     if (rand() % 3 == 0)
-        new Particle(tnk->loc, VectorFromAngle(rand() % 360, 0.05),
-          10 + rand() % 200, 0xff808080, -0.05, 0.01);
+        new Particle(tnk->loc, VectorFromAngle(rand() % 360, 5.0),
+          (float)(50 + rand() % 200) / 100.0, 0xff808080, -5.0, 20.0);
     } else if (tnk->health < 25 and rand() % (tnk->health/5) == 0)
-      new Particle(tnk->loc, VectorFromAngle(rand() % 360, 0.05),
-        50 + rand() % 100, 0xff808080, -0.05, 0.2);
+      new Particle(tnk->loc, VectorFromAngle(rand() % 360, 5.0),
+        (float)(50 + rand() % 200) / 100.0, 0xff808080, -5.0, 20.0);
   }
 
   for (int i = particles.size() - 1; i >= 0; i--) if (!particles[i]->alive) {
@@ -27,22 +36,22 @@ bool GameRound::UpdateParticles() {
   return true;
 }
 
-bool GameRound::Update(const Interface inter) {
+bool GameRound::Update() {
   if (state != prev_state) tic = 0;
   prev_state = state;
 
   switch (state) {
-    case PREPARATION: return UpdatePreparation(inter);
+    case PREPARATION: return UpdatePreparation();
     case SHOOT: return UpdateShoot();
     case SHOOTING: return UpdateShooting();
     case ENDING: return UpdateEnding();
-    case SCORES: return UpdateScores(inter);
+    case SCORES: return UpdateScores();
     case END: return true;
     default: return false;
   }
 }
 
-bool GameRound::UpdatePreparation(const Interface inter) {
+bool GameRound::UpdatePreparation() {
   for (int i = 0; i < PHYSICS_ROUNDS; i++) UpdateParticles();
 
   // Loop thru all tanks and call prepare for first alive tank that is not
@@ -50,9 +59,9 @@ bool GameRound::UpdatePreparation(const Interface inter) {
   Tank* tank;
   for (Tank* tnk: tanks) {
     if (tnk->alive && !tnk->ready) {
-      if (selected_tank != tnk) refresh = true;
+//      if (selected_tank != tnk) refresh = true;
       selected_tank = tnk;
-      tnk->Prepare(inter);
+      tnk->Prepare();
       return true;
     }
   }
@@ -69,7 +78,7 @@ bool GameRound::UpdateShoot() {
   tic = 0;
 
   for (Tank* tnk: tanks) {
-    if (tnk->alive) {
+    if (tnk->alive and tnk->player->type != Player::DUMMY) {
       Vector2D shot = VectorFromAngle(tnk->angle, (float)tnk->power / 100.0);
       Vector2D loc = Vector2D(tnk->loc) + shot;
       new Projectile(tnk, loc, shot);
@@ -162,14 +171,25 @@ bool GameRound::UpdateEnding() {
 
   wind.x += (float)((double)((rand() % 100) - 50) / 1000.0);
 
-  int alive = 0;
+  int alive = 0, dummies = 0;
   for (Tank* tnk: tanks) {
     tnk->ready = false;
-    if (tnk->alive) alive++;
+    if (tnk->alive)
+      if (tnk->player->type != Player::DUMMY) alive++;
+      else dummies++;
   }
 
-  if (alive <= 1) {
-    for (Tank* tnk: tanks) if (tnk->alive) tnk->player->score += POINTS_WINNER;
+  if (alive > 0 and dummies > 0) state = PREPARATION;
+  else if (alive <= 1) {
+    Player* winner = NULL;
+    for (Tank* tnk: tanks) {
+      if (tnk->alive) {
+        tnk->player->score += config->points_winning;
+        winner = tnk->player;
+      }
+    }
+    if (winner == NULL) Log(5, "Round ended. No winner");
+    else Log(5, "Round ended. Winner is " + winner->name);
     state = SCORES;
   } else state = PREPARATION;
 
@@ -177,15 +197,15 @@ bool GameRound::UpdateEnding() {
   return true;
 }
 
-bool GameRound::UpdateScores(const Interface inter) {
+bool GameRound::UpdateScores() {
   for (int i = 0; i < PHYSICS_ROUNDS; i++) UpdateParticles();
 
   int humans = 0;
   for (Tank* tnk: tanks)
     if (tnk->player->type == Player::HUMAN) humans++;
 
-  if (tic > 5 and inter.ready) { state = END; refresh = true; }
-  else if (tic > 300 and humans == 0) { state = END; refresh = true; }
+//  if (tic > 25 and inter.ready) { state = END; refresh = true; }
+  if (tic > 300 and humans == 0) { state = END; refresh = true; }
 
   tic++;
   return true;
