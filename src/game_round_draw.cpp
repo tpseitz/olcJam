@@ -329,7 +329,7 @@ bool DrawRound_Interface(Tank* tank) {
   char stats[150] = { 0 };
   sprintf(stats,
     "Power: %4d | Angle: %3d | Score: %-10d | Health: %d%% | Wind: %2.1f",
-    tank->power, tank->angle, tank->player->score, tank->health, game_round->wind.x*100.0);
+    tank->power, tank->angle, (int)tank->player->score, tank->health, game_round->wind.x*100.0);
   pge->FillRect(0, 0, pge->ScreenWidth(), 24, olc::BLACK);
   pge->DrawString(4, 4, stats, olc::WHITE, 2);
   if (game_round->wind.x != 0) {
@@ -363,7 +363,7 @@ bool DrawRound_Interface(Tank* tank) {
 }
 
 bool DrawRound_Scores() {
-  char buf[20] = { 0 };
+  char buf[30] = { 0 };
   sprintf(buf, "Round: %3d / %-3d", game_round->round, configuration.rounds);
   pge->DrawString(game_round->width / 2 - 144, 16, buf, olc::WHITE, 2);
 
@@ -375,7 +375,7 @@ bool DrawRound_Scores() {
     [](const Player* a, const Player* b) { return a->score > b->score; });
   int sx = game_round->width / 2 - 240, sy = 48, lh = 24, i = 0;
   for (Player* plr: tmp) {
-    sprintf(buf, "%15s   %-10d", plr->name.c_str(), plr->score);
+    sprintf(buf, "%15s   %-10d", plr->name.c_str(), (int)plr->score);
     pge->DrawString(sx, sy + i * lh, buf, olc::WHITE, 2);
     pge->FillRect(sx + 256, sy + i++ * lh + 2, 16, 16, plr->color);
   }

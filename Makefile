@@ -22,7 +22,7 @@ COPY = cp -f
 MKDIR = mkdir -p
 RMDIR = rmdir -p
 CPPFLAGS = -g -c -std=c++14
-LDFLAGS = -g -pthread -lGL -lX11 -lpng
+LDFLAGS = -g -pthread -lGL -lX11 -lpng -lstdc++fs
 WIN_LDFLAGS = -g -static-libgcc -static-libstdc++
 DCFLAGS = -g -std=c++14 -pthread -lGL -lX11 -lpng
 PACK = zip -r
